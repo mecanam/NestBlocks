@@ -194,6 +194,200 @@ Blockly.Blocks['text_length'] = {
 };
 
 // ──────────────────────────────
+// リスト
+// ──────────────────────────────
+
+// リストを作成（要素数を自由に変更可能）
+Blockly.Blocks['list_create'] = {
+  init: function() {
+    this.setColour('#745CA6');
+    this.setOutput(true, 'Array');
+    this.setTooltip('リストを作成します。歯車アイコンで要素数を変更できます');
+    this.setMutator(new Blockly.Mutator(['list_create_item']));
+    this.itemCount_ = 2;
+    this.updateShape_();
+  },
+  mutationToDom: function() {
+    var container = Blockly.utils.xml.createElement('mutation');
+    container.setAttribute('items', this.itemCount_);
+    return container;
+  },
+  domToMutation: function(xml) {
+    this.itemCount_ = parseInt(xml.getAttribute('items'), 10);
+    this.updateShape_();
+  },
+  decompose: function(workspace) {
+    var containerBlock = workspace.newBlock('list_create_container');
+    containerBlock.initSvg();
+    var connection = containerBlock.getInput('STACK').connection;
+    for (var i = 0; i < this.itemCount_; i++) {
+      var itemBlock = workspace.newBlock('list_create_item');
+      itemBlock.initSvg();
+      connection.connect(itemBlock.previousConnection);
+      connection = itemBlock.nextConnection;
+    }
+    return containerBlock;
+  },
+  compose: function(containerBlock) {
+    var itemBlock = containerBlock.getInputTargetBlock('STACK');
+    var connections = [];
+    while (itemBlock) {
+      connections.push(itemBlock.valueConnection_);
+      itemBlock = itemBlock.nextConnection && itemBlock.nextConnection.targetBlock();
+    }
+    for (var i = 0; i < this.itemCount_; i++) {
+      var connection = this.getInput('V' + i) && this.getInput('V' + i).connection.targetConnection;
+      if (connection && connections.indexOf(connection) === -1) {
+        connection.disconnect();
+      }
+    }
+    this.itemCount_ = connections.length;
+    this.updateShape_();
+    for (var j = 0; j < this.itemCount_; j++) {
+      Blockly.Mutator.reconnect(connections[j], this, 'V' + j);
+    }
+  },
+  saveConnections: function(containerBlock) {
+    var itemBlock = containerBlock.getInputTargetBlock('STACK');
+    var i = 0;
+    while (itemBlock) {
+      var input = this.getInput('V' + i);
+      itemBlock.valueConnection_ = input && input.connection.targetConnection;
+      itemBlock = itemBlock.nextConnection && itemBlock.nextConnection.targetBlock();
+      i++;
+    }
+  },
+  updateShape_: function() {
+    // 既存の入力を削除
+    for (var i = 0; this.getInput('V' + i); i++) {
+      this.removeInput('V' + i);
+    }
+    if (this.getInput('EMPTY')) this.removeInput('EMPTY');
+    // 新しい入力を追加
+    if (this.itemCount_ === 0) {
+      this.appendDummyInput('EMPTY').appendField('空のリスト');
+    } else {
+      for (var j = 0; j < this.itemCount_; j++) {
+        var input = this.appendValueInput('V' + j);
+        if (j === 0) input.appendField('リスト');
+      }
+    }
+    this.setInputsInline(this.itemCount_ <= 4);
+  }
+};
+
+// ミューテーター用の内部ブロック
+Blockly.Blocks['list_create_container'] = {
+  init: function() {
+    this.appendDummyInput().appendField('要素');
+    this.appendStatementInput('STACK');
+    this.setColour('#745CA6');
+    this.setTooltip('要素を追加・削除してリストの長さを変更');
+    this.contextMenu = false;
+  }
+};
+
+Blockly.Blocks['list_create_item'] = {
+  init: function() {
+    this.appendDummyInput().appendField('要素');
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour('#745CA6');
+    this.setTooltip('');
+    this.contextMenu = false;
+  }
+};
+
+// リストの要素を取得
+Blockly.Blocks['list_get'] = {
+  init: function() {
+    this.appendValueInput('LIST')
+        .setCheck('Array');
+    this.appendValueInput('INDEX')
+        .setCheck('Number')
+        .appendField('の');
+    this.appendDummyInput()
+        .appendField('番目');
+    this.setInputsInline(true);
+    this.setOutput(true, null);
+    this.setColour('#745CA6');
+    this.setTooltip('リストの指定した位置の要素を取得します（0番目から）');
+  }
+};
+
+// リストの要素を設定
+Blockly.Blocks['list_set'] = {
+  init: function() {
+    this.appendValueInput('LIST')
+        .setCheck('Array');
+    this.appendValueInput('INDEX')
+        .setCheck('Number')
+        .appendField('の');
+    this.appendValueInput('VALUE')
+        .appendField('番目を');
+    this.appendDummyInput()
+        .appendField('にする');
+    this.setInputsInline(true);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour('#745CA6');
+    this.setTooltip('リストの指定した位置の要素を変更します');
+  }
+};
+
+// リストに追加
+Blockly.Blocks['list_append'] = {
+  init: function() {
+    this.appendValueInput('LIST')
+        .setCheck('Array');
+    this.appendValueInput('VALUE')
+        .appendField('に');
+    this.appendDummyInput()
+        .appendField('を追加');
+    this.setInputsInline(true);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour('#745CA6');
+    this.setTooltip('リストの末尾に要素を追加します');
+  }
+};
+
+// リストの長さ
+Blockly.Blocks['list_length'] = {
+  init: function() {
+    this.appendValueInput('LIST')
+        .setCheck('Array')
+        .appendField('の長さ');
+    this.setOutput(true, 'Number');
+    this.setColour('#745CA6');
+    this.setTooltip('リストの要素数を返します');
+  }
+};
+
+// ──────────────────────────────
+// 数学（追加）
+// ──────────────────────────────
+
+// 値を範囲内に制限（クランプ）
+Blockly.Blocks['math_clamp'] = {
+  init: function() {
+    this.appendValueInput('VALUE')
+        .setCheck('Number')
+        .appendField('制限');
+    this.appendValueInput('LOW')
+        .setCheck('Number')
+        .appendField('最小');
+    this.appendValueInput('HIGH')
+        .setCheck('Number')
+        .appendField('最大');
+    this.setInputsInline(true);
+    this.setOutput(true, 'Number');
+    this.setColour('#5BA0E0');
+    this.setTooltip('値を最小〜最大の範囲内に制限します');
+  }
+};
+
+// ──────────────────────────────
 // グラフ（リアルタイムデータ送信）
 // ──────────────────────────────
 

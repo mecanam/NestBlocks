@@ -42,7 +42,8 @@ var TOOLBOX_SHARED_CATEGORIES = [
       { kind: 'block', type: 'math_number' },
       { kind: 'block', type: 'math_arithmetic', inputs: { A: _num(1), B: _num(1) } },
       { kind: 'block', type: 'math_single', inputs: { NUM: _num(9) } },
-      { kind: 'block', type: 'math_trig', inputs: { NUM: _num(45) } }
+      { kind: 'block', type: 'math_trig', inputs: { NUM: _num(45) } },
+      { kind: 'block', type: 'math_clamp', inputs: { VALUE: _num(0), LOW: _num(-100), HIGH: _num(100) } }
     ]
   },
   {
@@ -51,6 +52,17 @@ var TOOLBOX_SHARED_CATEGORIES = [
       { kind: 'block', type: 'text' },
       { kind: 'block', type: 'text_join', inputs: { A: _text('Hello'), B: _text(' World') } },
       { kind: 'block', type: 'text_length', inputs: { VALUE: _text('abc') } }
+    ]
+  },
+  {
+    kind: 'category', name: 'リスト', colour: '#745CA6',
+    contents: [
+      { kind: 'block', type: 'list_create' },
+      { kind: 'sep', gap: '12' },
+      { kind: 'block', type: 'list_get', inputs: { INDEX: _num(0) } },
+      { kind: 'block', type: 'list_set', inputs: { INDEX: _num(0) } },
+      { kind: 'block', type: 'list_append' },
+      { kind: 'block', type: 'list_length' }
     ]
   },
   {
@@ -102,15 +114,18 @@ var TOOLBOX_BOARD_CATEGORIES = {
         { kind: 'block', type: 'ble_send_number', inputs: { VALUE: _num(0) } },
         { kind: 'block', type: 'ble_send_string', inputs: { TEXT: _text('hello') } },
         { kind: 'block', type: 'ble_send_value', inputs: { VALUE: _num(0) } },
+        { kind: 'block', type: 'ble_send_list' },
         { kind: 'sep', gap: '8' },
         { kind: 'block', type: 'ble_on_number' },
         { kind: 'block', type: 'ble_on_string' },
         { kind: 'block', type: 'ble_on_value' },
+        { kind: 'block', type: 'ble_on_list' },
         { kind: 'sep', gap: '8' },
         { kind: 'block', type: 'ble_received_number' },
         { kind: 'block', type: 'ble_received_string' },
         { kind: 'block', type: 'ble_received_name' },
-        { kind: 'block', type: 'ble_received_value' }
+        { kind: 'block', type: 'ble_received_value' },
+        { kind: 'block', type: 'ble_received_list' }
       ]
     }
   ],

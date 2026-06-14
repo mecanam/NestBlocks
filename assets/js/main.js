@@ -440,6 +440,7 @@ function generateCode() {
   if (!window.blocklyWorkspace) return '';
 
   // ジェネレーター初期化
+  _asyncFuncNames = {};
   Blockly.Python.init(window.blocklyWorkspace);
 
   // 全トップレベルブロックを取得（位置順ソート済み）
@@ -453,7 +454,7 @@ function generateCode() {
     var code = Blockly.Python.blockToCode(block);
     if (Array.isArray(code)) code = code[0];
     if (code && code.trim()) {
-      if (block.type === 'ble_on_number' || block.type === 'ble_on_string' || block.type === 'ble_on_value') {
+      if (block.type === 'ble_on_number' || block.type === 'ble_on_string' || block.type === 'ble_on_value' || block.type === 'ble_on_list') {
         bleHandlers.push(code);
       } else {
         tasks.push({ code: code, isForever: block.type === 'forever_loop' });
@@ -477,6 +478,16 @@ function generateCode() {
       Blockly.Python.definitions_['variables'].replace(/= None/g, '= 0');
   }
 
+  // 変数名を抽出（global 宣言用）— 先に抽出しておく
+  var globalVars = [];
+  if (Blockly.Python.definitions_['variables']) {
+    var varLines = Blockly.Python.definitions_['variables'].split('\n');
+    for (var v = 0; v < varLines.length; v++) {
+      var match = varLines[v].match(/^(\w+)\s*=/);
+      if (match) globalVars.push(match[1]);
+    }
+  }
+
   // definitions_ をインポートとセットアップに分離
   var imports = [];
   var setupDefs = [];
@@ -485,17 +496,15 @@ function generateCode() {
     if (def.match(/^(from\s+\S+\s+)?import\s+\S+/)) {
       imports.push(def);
     } else {
+      // カスタム関数（% プレフィックス）に global 宣言を注入
+      if (name.charAt(0) === '%' && globalVars.length > 0) {
+        def = def.replace(
+          /((?:async )?def \w+\([^)]*\):\n)/,
+          '$1  global ' + globalVars.join(', ') + '\n'
+        );
+        Blockly.Python.definitions_[name] = def;
+      }
       setupDefs.push(def);
-    }
-  }
-
-  // 変数名を抽出（global 宣言用）
-  var globalVars = [];
-  if (Blockly.Python.definitions_['variables']) {
-    var varLines = Blockly.Python.definitions_['variables'].split('\n');
-    for (var v = 0; v < varLines.length; v++) {
-      var match = varLines[v].match(/^(\w+)\s*=/);
-      if (match) globalVars.push(match[1]);
     }
   }
 
@@ -544,9 +553,9 @@ function generateCode() {
     for (var bh = 0; bh < bleHandlers.length; bh++) {
       var handler = bleHandlers[bh];
       if (globalVars.length > 0) {
-        // "def _on_xxx(...):\n" の直後に global 宣言を挿入
+        // "def _on_xxx(...):\n" の直後（_ble_list 解析行がある場合はその後）に global 宣言を挿入
         handler = handler.replace(
-          /(def _on_\w+\([^)]*\):\n)/,
+          /(def _on_\w+\([^)]*\):\n(?:  _ble_list = [^\n]+\n)?)/,
           '$1  global ' + globalVars.join(', ') + '\n'
         );
       }

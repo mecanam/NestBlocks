@@ -170,6 +170,60 @@ Blockly.Python['ble_on_value'] = function(block) {
 };
 
 
+// リストを送信
+Blockly.Blocks['ble_send_list'] = {
+  init: function() {
+    this.appendValueInput('LIST')
+        .setCheck('Array')
+        .appendField('BLE リスト');
+    this.appendDummyInput()
+        .appendField('を送信');
+    this.setInputsInline(true);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(BLE_COLOUR);
+    this.setTooltip('リストをBLEで送信します（カンマ区切り文字列に変換）');
+  }
+};
+
+Blockly.Python['ble_send_list'] = function(block) {
+  ensureBleSetup();
+  var list = Blockly.Python.valueToCode(block, 'LIST', Blockly.Python.ORDER_NONE) || '[]';
+  return "ble.send_string(','.join([str(v) for v in " + list + "]))\n";
+};
+
+// リストを受信したとき
+Blockly.Blocks['ble_on_list'] = {
+  init: function() {
+    this.appendDummyInput()
+        .appendField('BLE リストを受信したとき');
+    this.appendStatementInput('DO');
+    this.setColour(BLE_COLOUR);
+    this.setTooltip('BLEでリストを受信したときに実行します\n「受信したリスト」ブロックで値を取得できます');
+  }
+};
+
+Blockly.Python['ble_on_list'] = function(block) {
+  ensureBleSetup();
+  var body = Blockly.Python.statementToCode(block, 'DO') || '  pass\n';
+  return '@ble.on_string\ndef _on_list(_ble_text):\n  _ble_list = [int(v) for v in _ble_text.split(\',\')]\n' + body + '\n';
+};
+
+// 受信したリスト
+Blockly.Blocks['ble_received_list'] = {
+  init: function() {
+    this.appendDummyInput().appendField('受信したリスト');
+    this.setOutput(true, 'Array');
+    this.setColour(BLE_COLOUR);
+    this.setTooltip('「リストを受信したとき」内で使用');
+  }
+};
+
+Blockly.Python['ble_received_list'] = function() {
+  return ['_ble_list', Blockly.Python.ORDER_ATOMIC];
+};
+
+
 // ══════════════════════════════════════════════════════
 // 受信した値（値ブロック — 受信イベント内で使用）
 // ══════════════════════════════════════════════════════

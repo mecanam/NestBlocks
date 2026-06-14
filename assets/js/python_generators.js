@@ -281,6 +281,150 @@ Blockly.Python['math_trig'] = function(block) {
 
 
 // ════════════════════════════════════════════════════════
+// 関数ブロック（async 対応オーバーライド）
+// ════════════════════════════════════════════════════════
+
+// async 関数名を追跡するセット
+var _asyncFuncNames = {};
+
+// ブロックが await を生成するかどうか（プラグインからも拡張可能）
+var _awaitBlockTypes = { 'sleep': true };
+
+// プラグイン等から await 生成ブロックを登録する API
+function registerAwaitBlock(type) { _awaitBlockTypes[type] = true; }
+
+// 同期コールバック型ブロックの登録（プラグインから拡張可能）
+var _syncCallbackTypes = {};
+function registerSyncCallback(type) { _syncCallbackTypes[type] = true; }
+
+// ワークスペースから関数定義ブロックの本体に await が必要か判定（再帰的）
+function _isAsyncProcedure(funcName, _visited) {
+    // 循環参照防止
+    if (!_visited) _visited = {};
+    if (_visited[funcName]) return false;
+    _visited[funcName] = true;
+    // 既に判定済みならキャッシュを返す
+    if (_asyncFuncNames.hasOwnProperty(funcName)) return _asyncFuncNames[funcName];
+    if (!window.blocklyWorkspace) return false;
+    // ワークスペースから関数定義ブロックを探す
+    var allBlocks = window.blocklyWorkspace.getAllBlocks(false);
+    for (var i = 0; i < allBlocks.length; i++) {
+        var b = allBlocks[i];
+        if ((b.type === 'procedures_defnoreturn' || b.type === 'procedures_defreturn') &&
+            b.getFieldValue('NAME') === funcName) {
+            var children = b.getDescendants(false);
+            for (var j = 0; j < children.length; j++) {
+                var child = children[j];
+                // await を生成するブロックが含まれているか
+                if (_awaitBlockTypes[child.type]) {
+                    _asyncFuncNames[funcName] = true;
+                    return true;
+                }
+                // 別の関数を呼んでいる場合、その関数が async か再帰チェック
+                if ((child.type === 'procedures_callnoreturn' || child.type === 'procedures_callreturn') &&
+                    child.getFieldValue('NAME')) {
+                    if (_isAsyncProcedure(child.getFieldValue('NAME'), _visited)) {
+                        _asyncFuncNames[funcName] = true;
+                        return true;
+                    }
+                }
+            }
+            _asyncFuncNames[funcName] = false;
+            return false;
+        }
+    }
+    return false;
+}
+
+// 関数定義: 本体に await が含まれていれば async def にする
+Blockly.Python['procedures_defreturn'] = function(block) {
+    var funcName = block.getFieldValue('NAME');
+    var safeName = Blockly.Python.nameDB_ ?
+        Blockly.Python.nameDB_.getName(funcName, 'PROCEDURE') : funcName;
+    var branch = Blockly.Python.statementToCode(block, 'STACK');
+    var returnValue = Blockly.Python.valueToCode(block, 'RETURN', Blockly.Python.ORDER_NONE) || '';
+    var xfix1 = '';
+    if (Blockly.Python.STATEMENT_PREFIX) {
+        xfix1 = Blockly.Python.prefixLines(Blockly.Python.injectId(Blockly.Python.STATEMENT_PREFIX, block), Blockly.Python.INDENT);
+    }
+    var loopTrap = '';
+    if (Blockly.Python.INFINITE_LOOP_TRAP) {
+        loopTrap = Blockly.Python.prefixLines(Blockly.Python.injectId(Blockly.Python.INFINITE_LOOP_TRAP, block), Blockly.Python.INDENT);
+    }
+    var returnCode = returnValue ? '  return ' + returnValue + '\n' : '';
+    var args = [];
+    var variables = block.getVars ? block.getVars() : [];
+    for (var i = 0; i < variables.length; i++) {
+        args.push(Blockly.Python.nameDB_ ?
+            Blockly.Python.nameDB_.getName(variables[i], 'VARIABLE') : variables[i]);
+    }
+    var body = xfix1 + loopTrap + branch + returnCode;
+    if (!body) body = Blockly.Python.PASS;
+    var isAsync = body.indexOf('await ') !== -1;
+    if (isAsync) {
+        _asyncFuncNames[funcName] = true;
+    }
+    var defKeyword = isAsync ? 'async def ' : 'def ';
+    var code = defKeyword + safeName + '(' + args.join(', ') + '):\n' + body;
+    code = Blockly.Python.scrub_(block, code);
+    Blockly.Python.definitions_['%' + safeName] = code;
+    return null;
+};
+
+Blockly.Python['procedures_defnoreturn'] = Blockly.Python['procedures_defreturn'];
+
+// 関数呼び出し（値を返す）
+Blockly.Python['procedures_callreturn'] = function(block) {
+    var funcName = block.getFieldValue('NAME');
+    var safeName = Blockly.Python.nameDB_ ?
+        Blockly.Python.nameDB_.getName(funcName, 'PROCEDURE') : funcName;
+    var args = [];
+    var variables = block.getVars ? block.getVars() : [];
+    for (var i = 0; i < variables.length; i++) {
+        args.push(Blockly.Python.valueToCode(block, 'ARG' + i, Blockly.Python.ORDER_NONE) || 'None');
+    }
+    var callCode = safeName + '(' + args.join(', ') + ')';
+    if (_isAsyncProcedure(funcName)) {
+        callCode = 'await ' + callCode;
+    }
+    return [callCode, Blockly.Python.ORDER_FUNCTION_CALL];
+};
+
+// 関数呼び出し（値を返さない）
+Blockly.Python['procedures_callnoreturn'] = function(block) {
+    var funcName = block.getFieldValue('NAME');
+    var safeName = Blockly.Python.nameDB_ ?
+        Blockly.Python.nameDB_.getName(funcName, 'PROCEDURE') : funcName;
+    var args = [];
+    var variables = block.getVars ? block.getVars() : [];
+    for (var i = 0; i < variables.length; i++) {
+        args.push(Blockly.Python.valueToCode(block, 'ARG' + i, Blockly.Python.ORDER_NONE) || 'None');
+    }
+    var callCode = safeName + '(' + args.join(', ') + ')';
+    if (_isAsyncProcedure(funcName)) {
+        // 親ブロックを辿って同期コールバック内か判定
+        var inSyncCallback = false;
+        var parent = block.getSurroundParent();
+        while (parent) {
+            // _syncCallbackTypes に登録されているか、ble_on_ で始まるブロック
+            if (_syncCallbackTypes[parent.type] || parent.type.indexOf('ble_on_') === 0) {
+                inSyncCallback = true;
+                break;
+            }
+            parent = parent.getSurroundParent();
+        }
+        if (inSyncCallback) {
+            Blockly.Python.definitions_['import_uasyncio'] = 'import uasyncio';
+            callCode = 'uasyncio.create_task(' + callCode + ')';
+        } else {
+            callCode = 'await ' + callCode;
+        }
+    }
+    return callCode + '\n';
+};
+
+
+// ════════════════════════════════════════════════════════
 // カスタムブロック
 // ════════════════════════════════════════════════════════
 
@@ -427,6 +571,52 @@ Blockly.Python['analog_write_percent'] = function(block) {
     const code = `pwm_${pin}.duty_u16(int((${percent}) * 655.35))\n`;
     return code;
 }
+
+// ════════════════════════════════════════════════════════
+// リストブロック
+// ════════════════════════════════════════════════════════
+
+Blockly.Python['list_create'] = function(block) {
+    var items = [];
+    for (var i = 0; i < block.itemCount_; i++) {
+        var val = Blockly.Python.valueToCode(block, 'V' + i, Blockly.Python.ORDER_NONE) || '0';
+        items.push(val);
+    }
+    return ['[' + items.join(', ') + ']', Blockly.Python.ORDER_ATOMIC];
+};
+
+Blockly.Python['list_get'] = function(block) {
+    var list = Blockly.Python.valueToCode(block, 'LIST', Blockly.Python.ORDER_MEMBER) || '[]';
+    var index = Blockly.Python.valueToCode(block, 'INDEX', Blockly.Python.ORDER_NONE) || '0';
+    return [list + '[int(' + index + ')]', Blockly.Python.ORDER_MEMBER];
+};
+
+Blockly.Python['list_set'] = function(block) {
+    var list = Blockly.Python.valueToCode(block, 'LIST', Blockly.Python.ORDER_MEMBER) || '[]';
+    var index = Blockly.Python.valueToCode(block, 'INDEX', Blockly.Python.ORDER_NONE) || '0';
+    var value = Blockly.Python.valueToCode(block, 'VALUE', Blockly.Python.ORDER_NONE) || '0';
+    return list + '[int(' + index + ')] = ' + value + '\n';
+};
+
+Blockly.Python['list_append'] = function(block) {
+    var list = Blockly.Python.valueToCode(block, 'LIST', Blockly.Python.ORDER_MEMBER) || '[]';
+    var value = Blockly.Python.valueToCode(block, 'VALUE', Blockly.Python.ORDER_NONE) || '0';
+    return list + '.append(' + value + ')\n';
+};
+
+Blockly.Python['list_length'] = function(block) {
+    var list = Blockly.Python.valueToCode(block, 'LIST', Blockly.Python.ORDER_NONE) || '[]';
+    return ['len(' + list + ')', Blockly.Python.ORDER_FUNCTION_CALL];
+};
+
+// 値を範囲内に制限（クランプ）
+Blockly.Python['math_clamp'] = function(block) {
+    var value = Blockly.Python.valueToCode(block, 'VALUE', Blockly.Python.ORDER_NONE) || '0';
+    var low = Blockly.Python.valueToCode(block, 'LOW', Blockly.Python.ORDER_NONE) || '0';
+    var high = Blockly.Python.valueToCode(block, 'HIGH', Blockly.Python.ORDER_NONE) || '0';
+    var code = 'max(' + low + ', min(' + high + ', ' + value + '))';
+    return [code, Blockly.Python.ORDER_FUNCTION_CALL];
+};
 
 // グラフ
 
