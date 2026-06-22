@@ -1270,6 +1270,42 @@ body {
 .pn-feature-list li strong { font-size: 14px; font-weight: 800; }
 .pn-feature-list li span { font-size: 13px; color: var(--text3); line-height: 1.5; }
 
+/* 更新履歴モーダル */
+.cl-modal { max-width: 680px; height: auto; max-height: 88vh; }
+.cl-list { display: flex; flex-direction: column; gap: 28px; }
+.cl-release { position: relative; padding-left: 18px; }
+.cl-release::before {
+  content: ""; position: absolute; left: 0; top: 7px;
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--text3);
+}
+.cl-release:first-child::before { background: var(--orange); }
+.cl-release-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.cl-version { font-family: var(--fl); font-size: 18px; font-weight: 900; letter-spacing: -.02em; }
+.cl-latest {
+  font-size: 11px; font-weight: 800; color: #fff; background: var(--orange);
+  padding: 2px 8px; border-radius: 999px;
+}
+.cl-date { font-size: 12px; font-weight: 600; color: var(--text3); margin-left: auto; }
+.cl-items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.cl-items li { display: flex; align-items: flex-start; gap: 10px; }
+.cl-tag {
+  flex-shrink: 0; font-size: 11px; font-weight: 800;
+  padding: 2px 8px; border-radius: 6px; margin-top: 1px; min-width: 44px; text-align: center;
+}
+.cl-tag--new     { background: rgba(52,199,89,.14);  color: var(--green); }
+.cl-tag--fix     { background: rgba(232,114,74,.14); color: var(--orange); }
+.cl-tag--improve { background: rgba(91,160,224,.16); color: #5BA0E0; }
+.cl-text { font-size: 14px; line-height: 1.6; color: var(--text2); }
+
+/* フッターのバージョン（クリックで更新履歴） */
+.footer-version {
+  background: none; border: none; cursor: pointer;
+  font: inherit; color: var(--text3); padding: 0;
+  transition: color .15s;
+}
+.footer-version:hover { color: var(--orange); }
+
 /* カード */
 .ext-card {
   border: 1.5px solid var(--bdr); border-radius: 18px;

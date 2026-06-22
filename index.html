@@ -315,6 +315,7 @@
                 <button class="footer-link" onclick="NestHelp.open('start')">はじめに</button>
                 <button class="footer-link" onclick="NestHelp.open('faq')">よくある質問</button>
                 <button class="footer-link" onclick="NestHelp.open('connection')">接続トラブル</button>
+                <button class="footer-link" onclick="openChangelogModal()">更新履歴</button>
               </div>
               <div class="footer-col">
                 <h4 class="footer-col-title">設定</h4>
@@ -324,7 +325,7 @@
             </div>
           </div>
           <div class="footer-bottom">
-            <span class="footer-copy">NestBlocks v0.8.0</span>
+            <button class="footer-version" onclick="openChangelogModal()" title="更新履歴を見る">NestBlocks <span id="footerVersion">v1.2.0</span></button>
             <span class="footer-sep">·</span>
             <span class="footer-copy">Powered by Blockly</span>
           </div>
@@ -536,7 +537,7 @@
         <div class="sg">
           <div class="sg-title" data-i18n="settings.about">NestBlocks について</div>
           <div class="sg-card">
-            <div class="sg-item"><div><div class="sg-label">バージョン</div><div class="sg-desc">v0.8.0</div></div></div>
+            <div class="sg-item"><div><div class="sg-label">バージョン</div><div class="sg-desc">v1.2.0</div></div></div>
             <div class="sg-item"><div><div class="sg-label">Blockly</div><div class="sg-desc" id="blocklyVersion">-</div></div></div>
             <div class="sg-item"><div><div class="sg-label" data-i18n="settings.browser">対応ブラウザ</div><div class="sg-desc">Chrome / Edge（Web Serial API対応）</div></div></div>
             <div class="sg-item"><div><div class="sg-label" data-i18n="settings.license">ライセンス</div><div class="sg-desc">Apache License 2.0（Blockly）</div></div></div>
@@ -736,6 +737,24 @@
             </li>
           </ul>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 更新履歴モーダル -->
+  <div class="ext-overlay" id="changelogOverlay">
+    <div class="ext-modal cl-modal">
+      <div class="ext-header">
+        <div class="ext-header-left">
+          <span class="ext-title">更新履歴</span>
+          <span class="ext-subtitle">NestBlocks のアップデート内容</span>
+        </div>
+        <button class="ext-close" onclick="closeChangelogModal()">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="ext-body">
+        <div class="cl-list" id="changelogList"></div>
       </div>
     </div>
   </div>

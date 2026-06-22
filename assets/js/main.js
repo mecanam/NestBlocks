@@ -1293,6 +1293,88 @@ function closePicoNestModal() {
   document.getElementById('picoNestOverlay').classList.remove('show');
 }
 
+// ──────────────────────────────
+// 更新履歴
+// 新しいバージョンは配列の先頭に追加してください。
+//   tag: 'new'（新機能）/ 'fix'（修正）/ 'improve'（改善）
+// ──────────────────────────────
+var CHANGELOG = [
+  {
+    version: 'v1.2.0',
+    date: '2026-06-22',
+    items: [
+      { tag: 'new', text: '絶対値（abs）ブロックを追加しました。' },
+      { tag: 'new', text: '範囲変換（map）ブロックを追加しました。値を別の範囲に変換できます。' },
+      { tag: 'improve', text: '数学ブロックのラベルを、はじめての人にも分かりやすい文章に変更しました。' },
+      { tag: 'new', text: '対応デバイス「PicoNest」の詳細モーダル（写真・機能説明）を追加しました。' },
+      { tag: 'new', text: 'ホーム画面から公式ドキュメントを開けるようにしました。' },
+    ]
+  },
+  {
+    version: 'v1.1.0',
+    date: '2026-06-14',
+    items: [
+      { tag: 'new', text: 'GamePad コントローラーに対応しました（BLE 接続でワイヤレス操作）。' },
+      { tag: 'new', text: 'コントローラー用のブロックを追加しました。' },
+      { tag: 'fix', text: '各種の不具合を修正しました。' },
+    ]
+  },
+  {
+    version: 'v1.0.0',
+    date: '2026-04-19',
+    items: [
+      { tag: 'new', text: 'NestBlocks を公開しました。' },
+      { tag: 'new', text: 'ブロックエディタと MicroPython コードの自動生成に対応。' },
+      { tag: 'new', text: 'USB（WebSerial）でマイコンへ直接書き込めるようにしました。' },
+      { tag: 'new', text: 'リアルタイムグラフ・拡張機能・多言語表示に対応しました。' },
+    ]
+  },
+];
+
+var CHANGELOG_TAGS = {
+  'new':     { label: '新機能', cls: 'cl-tag--new' },
+  'fix':     { label: '修正',   cls: 'cl-tag--fix' },
+  'improve': { label: '改善',   cls: 'cl-tag--improve' },
+};
+
+function renderChangelog() {
+  var list = document.getElementById('changelogList');
+  if (!list) return;
+  var html = '';
+  for (var i = 0; i < CHANGELOG.length; i++) {
+    var rel = CHANGELOG[i];
+    html += '<div class="cl-release">';
+    html += '<div class="cl-release-head">';
+    html += '<span class="cl-version">' + rel.version + '</span>';
+    if (i === 0) html += '<span class="cl-latest">最新</span>';
+    html += '<span class="cl-date">' + rel.date + '</span>';
+    html += '</div>';
+    html += '<ul class="cl-items">';
+    for (var j = 0; j < rel.items.length; j++) {
+      var item = rel.items[j];
+      var t = CHANGELOG_TAGS[item.tag] || { label: '', cls: '' };
+      html += '<li><span class="cl-tag ' + t.cls + '">' + t.label + '</span>'
+            + '<span class="cl-text">' + item.text + '</span></li>';
+    }
+    html += '</ul>';
+    html += '</div>';
+  }
+  list.innerHTML = html;
+
+  // フッターのバージョン表記を最新に同期
+  var fv = document.getElementById('footerVersion');
+  if (fv && CHANGELOG.length) fv.textContent = CHANGELOG[0].version;
+}
+
+function openChangelogModal() {
+  renderChangelog();
+  document.getElementById('changelogOverlay').classList.add('show');
+}
+
+function closeChangelogModal() {
+  document.getElementById('changelogOverlay').classList.remove('show');
+}
+
 function renderPluginList() {
   var list = document.getElementById('pluginList');
   if (!list) return;
@@ -1998,6 +2080,14 @@ document.addEventListener('DOMContentLoaded', function() {
   if (picoNestOverlay) {
     picoNestOverlay.addEventListener('click', function(e) {
       if (e.target === picoNestOverlay) closePicoNestModal();
+    });
+  }
+
+  // 更新履歴モーダル：オーバーレイクリックで閉じる
+  var changelogOverlay = document.getElementById('changelogOverlay');
+  if (changelogOverlay) {
+    changelogOverlay.addEventListener('click', function(e) {
+      if (e.target === changelogOverlay) closeChangelogModal();
     });
   }
 
