@@ -1242,6 +1242,34 @@ body {
   gap: 16px;
 }
 
+/* PicoNest デバイスモーダル */
+.pn-modal { max-width: 720px; height: auto; max-height: 88vh; }
+.pn-modal .ext-body {
+  display: flex; flex-direction: column; gap: 24px;
+}
+.pn-image {
+  border-radius: 16px; overflow: hidden;
+  background: var(--bg-h); border: 1.5px solid var(--bdr);
+  display: flex; align-items: center; justify-content: center;
+}
+.pn-image img {
+  display: block; width: 100%; height: auto;
+  max-height: 48vh; object-fit: contain;
+}
+.pn-features-title {
+  font-family: var(--fl); font-size: 17px; font-weight: 900;
+  letter-spacing: -.02em; margin: 0 0 14px;
+}
+.pn-feature-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+.pn-feature-list li { display: flex; align-items: flex-start; gap: 12px; }
+.pn-feature-list li svg {
+  width: 20px; height: 20px; flex-shrink: 0; margin-top: 1px;
+  stroke: var(--orange); fill: none;
+}
+.pn-feature-list li div { display: flex; flex-direction: column; gap: 2px; }
+.pn-feature-list li strong { font-size: 14px; font-weight: 800; }
+.pn-feature-list li span { font-size: 13px; color: var(--text3); line-height: 1.5; }
+
 /* カード */
 .ext-card {
   border: 1.5px solid var(--bdr); border-radius: 18px;
@@ -1525,10 +1553,11 @@ body {
    ============================================================ */
 
 .stage {
-  background: var(--bg-s);
+  background: var(--bg-s) url('../hero_back.png') no-repeat right bottom / contain;
   border-bottom: 1px solid var(--bdr);
   overflow: hidden;
   position: relative;
+  min-height: 380px;
 }
 .stage-inner {
   display: flex;
@@ -1537,11 +1566,13 @@ body {
   margin: 0 auto;
 }
 
-/* 左テキスト: 幅50%、これがステージの高さを決める */
+/* テキスト: イラスト背景と重ならないよう左寄せ */
 .stage-text {
-  width: 50%;
+  width: 55%;
   flex-shrink: 0;
   padding: 48px 48px 48px 64px;
+  position: relative;
+  z-index: 1;
 }
 .stage-title {
   font-family: var(--fl);
@@ -1597,12 +1628,9 @@ body {
 }
 .home-open-btn:hover { background: var(--bg-h); border-color: var(--text3); }
 
-/* 右ビジュアル: 幅50% */
+/* 右ビジュアル: 背景イラストに置き換えたので非表示 */
 .stage-visual {
-  position: absolute;
-  top: 30%;
-  right: 32px;
-  left: 50%;
+  display: none;
 }
 .stage-window {
   border-radius: 10px 10px 0 0;
@@ -2024,6 +2052,141 @@ body {
   .fc-row-rev .fc-row-text { order: 0; }
   .fc-title { margin-bottom: 36px; }
   .fc-row { margin-bottom: 48px; }
+}
+
+/* ──────────────────────────────
+   エコシステムセクション
+   ────────────────────────────── */
+.eco-section {
+  padding: 80px 64px;
+  background: var(--bg-s);
+  border-top: 1px solid var(--bdr);
+}
+.eco-inner {
+  max-width: 900px;
+  margin: 0 auto;
+}
+.eco-title {
+  font-family: var(--fl);
+  font-size: 28px; font-weight: 900;
+  letter-spacing: -.03em;
+  color: var(--text);
+  text-align: center;
+  margin-bottom: 8px;
+}
+.eco-subtitle {
+  font-size: 14px;
+  color: var(--text2);
+  text-align: center;
+  margin-bottom: 48px;
+  font-weight: 500;
+}
+
+/* グループ */
+.eco-group {
+  margin-bottom: 36px;
+}
+.eco-group:last-child { margin-bottom: 0; }
+.eco-group-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  padding-left: 4px;
+}
+.eco-group-head svg {
+  width: 18px; height: 18px;
+  color: var(--text3);
+  flex-shrink: 0;
+}
+.eco-group-head h3 {
+  font-family: var(--fl);
+  font-size: 14px; font-weight: 800;
+  color: var(--text2);
+  letter-spacing: -.01em;
+  text-transform: uppercase;
+}
+
+/* カード */
+.eco-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.eco-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 20px;
+  background: var(--bg);
+  border: 1px solid var(--bdr);
+  border-radius: 14px;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color .15s, box-shadow .15s, transform .15s;
+}
+.eco-card:hover {
+  border-color: var(--text3);
+  box-shadow: 0 4px 16px rgba(0,0,0,.06);
+  transform: translateY(-1px);
+}
+.eco-card--disabled {
+  cursor: default;
+  opacity: .55;
+}
+.eco-card--disabled:hover {
+  border-color: var(--bdr);
+  box-shadow: none;
+  transform: none;
+}
+.eco-card-icon {
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.eco-card-icon svg { width: 22px; height: 22px; }
+.eco-card-body {
+  flex: 1;
+  min-width: 0;
+}
+.eco-card-name {
+  font-family: var(--fl);
+  font-size: 15px; font-weight: 800;
+  color: var(--text);
+  margin-bottom: 3px;
+  letter-spacing: -.02em;
+}
+.eco-card-desc {
+  font-size: 12px;
+  color: var(--text2);
+  line-height: 1.6;
+  font-weight: 500;
+}
+.eco-card-badge {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 2px 8px;
+  font-size: 10px; font-weight: 700;
+  color: var(--orange);
+  background: rgba(217,69,16,.08);
+  border-radius: 4px;
+}
+.eco-card-arrow {
+  width: 18px; height: 18px;
+  color: var(--text3);
+  flex-shrink: 0;
+  transition: transform .15s;
+}
+.eco-card:hover .eco-card-arrow {
+  transform: translateX(3px);
+  color: var(--orange);
+}
+
+@media (max-width: 700px) {
+  .eco-section { padding: 48px 20px; }
+  .eco-title { margin-bottom: 6px; }
+  .eco-subtitle { margin-bottom: 32px; }
 }
 
 

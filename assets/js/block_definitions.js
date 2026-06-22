@@ -369,21 +369,63 @@ Blockly.Blocks['list_length'] = {
 // ──────────────────────────────
 
 // 値を範囲内に制限（クランプ）
-Blockly.Blocks['math_clamp'] = {
+// 絶対値（マイナスをプラスにする）
+Blockly.Blocks['math_abs'] = {
   init: function() {
-    this.appendValueInput('VALUE')
-        .setCheck('Number')
-        .appendField('制限');
-    this.appendValueInput('LOW')
-        .setCheck('Number')
-        .appendField('最小');
-    this.appendValueInput('HIGH')
-        .setCheck('Number')
-        .appendField('最大');
+    this.appendValueInput('NUM')
+        .setCheck('Number');
+    this.appendDummyInput()
+        .appendField('をプラスの数にする（絶対値）');
     this.setInputsInline(true);
     this.setOutput(true, 'Number');
     this.setColour('#5BA0E0');
-    this.setTooltip('値を最小〜最大の範囲内に制限します');
+    this.setTooltip('マイナスの数をプラスに変えます（絶対値）。例：-5 → 5、3 → 3');
+  }
+};
+
+// 範囲におさめる（最小以上・最大以下にする）
+Blockly.Blocks['math_clamp'] = {
+  init: function() {
+    this.appendValueInput('VALUE')
+        .setCheck('Number');
+    this.appendValueInput('LOW')
+        .setCheck('Number')
+        .appendField('を');
+    this.appendValueInput('HIGH')
+        .setCheck('Number')
+        .appendField('以上');
+    this.appendDummyInput()
+        .appendField('以下におさめる');
+    this.setInputsInline(true);
+    this.setOutput(true, 'Number');
+    this.setColour('#5BA0E0');
+    this.setTooltip('値を「最小以上・最大以下」の範囲におさめます。範囲をはみ出したら、いちばん近い方の値になります');
+  }
+};
+
+// 範囲変換（Arduino の map 関数と同じ）
+Blockly.Blocks['math_map'] = {
+  init: function() {
+    this.appendValueInput('VALUE')
+        .setCheck('Number');
+    this.appendValueInput('FROM_LOW')
+        .setCheck('Number')
+        .appendField('を');
+    this.appendValueInput('FROM_HIGH')
+        .setCheck('Number')
+        .appendField('〜');
+    this.appendValueInput('TO_LOW')
+        .setCheck('Number')
+        .appendField('の範囲から');
+    this.appendValueInput('TO_HIGH')
+        .setCheck('Number')
+        .appendField('〜');
+    this.appendDummyInput()
+        .appendField('の範囲に変換');
+    this.setInputsInline(true);
+    this.setOutput(true, 'Number');
+    this.setColour('#5BA0E0');
+    this.setTooltip('ある範囲の値を、同じ割合のまま別の範囲の値に置きかえます。例：0〜1023 の値を 0〜255 に変換（Arduino の map と同じ）');
   }
 };
 

@@ -208,73 +208,79 @@
           </div>
         </div>
 
-        <!-- ===== 機能紹介 ===== -->
-        <div class="fc-section">
-          <div class="fc-inner">
-            <h2 class="fc-title">機能</h2>
+        <!-- ===== エコシステム ===== -->
+        <div class="eco-section">
+          <div class="eco-inner">
+            <!--<h2 class="eco-title">エコシステム</h2>
+            <p class="eco-subtitle">NestBlocks を取り巻くデバイス・アプリ・ドキュメント</p> -->
 
-            <div class="fc-row lp-reveal">
-              <div class="fc-row-visual">
-                <img src="assets/micropython.jpeg" alt="MicroPython自動生成">
+            <!-- 対応デバイス -->
+            <div class="eco-group lp-reveal">
+              <div class="eco-group-head">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="13" y2="13"/></svg>
+                <h2>対応デバイス</h2>
               </div>
-              <div class="fc-row-text">
-                <div class="fc-row-icon" style="background: rgba(52,199,89,.1); color: var(--green);">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+              <div class="eco-cards">
+                <a class="eco-card" href="#" onclick="openPicoNestModal(); return false;">
+                  <div class="eco-card-icon" style="background: rgba(232,114,74,.1); color: var(--orange);">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="2" width="12" height="20" rx="2"/><line x1="10" y1="6" x2="14" y2="6"/></svg>
+                  </div>
+                  <div class="eco-card-body">
+                    <div class="eco-card-name">PicoNest</div>
+                    <div class="eco-card-desc">Raspberry Pi Pico 用拡張ボード。DCモーター、サーボ、OLEDディスプレイに対応。</div>
+                  </div>
+                  <svg class="eco-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                </a>
+                <div class="eco-card eco-card--disabled">
+                  <div class="eco-card-icon" style="background: rgba(124,77,255,.1); color: #7C4DFF;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="8" width="12" height="8" rx="3"/><circle cx="10" cy="12" r="2"/><line x1="15" y1="10" x2="15" y2="10.01" stroke-width="3" stroke-linecap="round"/></svg>
+                  </div>
+                  <div class="eco-card-body">
+                    <div class="eco-card-name">GamePad コントローラー</div>
+                    <div class="eco-card-desc">ボタン12個＋ジョイスティック搭載の専用コントローラー基板。BLE でワイヤレス操作。</div>
+                  </div>
+                  <svg class="eco-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
                 </div>
-                <h3 class="fc-row-title">MicroPython 自動生成</h3>
-                <p class="fc-row-desc">ブロックを組み立てると、リアルタイムでMicroPythonコードが生成されます。生成されたコードはコードタブでいつでも確認でき、Pythonの学習にも活用できます。</p>
               </div>
             </div>
 
-            <div class="fc-row fc-row-rev lp-reveal">
-              <div class="fc-row-visual">
-                <img src="assets/multitask.jpeg" alt="マルチタスク">
+            <!-- 対応アプリ -->
+            <div class="eco-group lp-reveal">
+              <div class="eco-group-head">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18.01" stroke-width="3" stroke-linecap="round"/></svg>
+                <h2>対応アプリ</h2>
               </div>
-              <div class="fc-row-text">
-                <div class="fc-row-icon" style="background: rgba(139,111,232,.1); color: var(--purple);">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="8" height="10" rx="1"/><rect x="14" y="7" width="8" height="10" rx="1"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
-                </div>
-                <h3 class="fc-row-title">マルチタスク</h3>
-                <p class="fc-row-desc">ブロック列を横に並べるだけで並行処理が実現。LEDを点滅させながらセンサーの値を読み取るなど、複数の処理を同時に実行できます。</p>
-              </div>
-            </div>
-
-            <div class="fc-row lp-reveal">
-              <div class="fc-row-visual">
-                <img src="assets/BLE.jpeg" alt="BLE通信">
-              </div>
-              <div class="fc-row-text">
-                <div class="fc-row-icon" style="background: rgba(224,75,22,.1); color: var(--orange);">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 0 1 0 20 10 10 0 0 1 0-20z"/><path d="M2 12h4M18 12h4M12 2v4M12 18v4"/></svg>
-                </div>
-                <h3 class="fc-row-title">BLE 通信</h3>
-                <p class="fc-row-desc">Bluetooth Low Energyを使って、複数のPico同士がワイヤレスでデータをやり取り。教室内のデバイスをつなげた共同プロジェクトが実現できます。</p>
+              <div class="eco-cards">
+                <a class="eco-card" href="#" target="_blank">
+                  <div class="eco-card-icon" style="background: rgba(255,87,34,.1); color: #FF5722;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="8" width="12" height="8" rx="3"/><circle cx="10" cy="12" r="1.5"/><circle cx="14" cy="12" r="1.5"/><path d="M4 12h2M18 12h2"/></svg>
+                  </div>
+                  <div class="eco-card-body">
+                    <div class="eco-card-name">RoboPad</div>
+                    <div class="eco-card-desc">スマートフォンをコントローラーに。BLE 接続でジョイスティック・ボタン操作を送信できます。</div>
+                  </div>
+                  <svg class="eco-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                </a>
               </div>
             </div>
 
-            <div class="fc-row fc-row-rev lp-reveal">
-              <div class="fc-row-visual">
-                <img src="assets/graph.jpeg" alt="リアルタイムグラフ">
+            <!-- ドキュメント -->
+            <div class="eco-group lp-reveal">
+              <div class="eco-group-head">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                <h2>ドキュメント</h2>
               </div>
-              <div class="fc-row-text">
-                <div class="fc-row-icon" style="background: rgba(52,199,89,.1); color: var(--green);">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-                </div>
-                <h3 class="fc-row-title">リアルタイムグラフ</h3>
-                <p class="fc-row-desc">センサーから取得した温度、距離、明るさなどのデータをリアルタイムでグラフに表示。データの変化を視覚的に確認しながらプログラムを調整できます。</p>
-              </div>
-            </div>
-
-            <div class="fc-row lp-reveal">
-              <div class="fc-row-visual" onclick="openPluginModal()" style="cursor:pointer">
-                <img src="assets/Extentions.jpeg" alt="拡張機能">
-              </div>
-              <div class="fc-row-text">
-                <div class="fc-row-icon" style="background: rgba(74,143,231,.1); color: var(--blue);">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-                </div>
-                <h3 class="fc-row-title">拡張機能</h3>
-                <p class="fc-row-desc">モーター制御、温湿度センサー、OLEDディスプレイ、ゲームパッドなど、プラグインを追加するだけでブロックが増えます。必要な機能だけ選んで使えます。</p>
+              <div class="eco-cards">
+                <a class="eco-card" id="docsLink" href="#" target="_blank">
+                  <div class="eco-card-icon" style="background: rgba(52,199,89,.1); color: var(--green);">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                  </div>
+                  <div class="eco-card-body">
+                    <div class="eco-card-name">公式ドキュメント</div>
+                    <div class="eco-card-desc">ブロックリファレンス、チュートリアル、接続ガイドなど。</div>
+                  </div>
+                  <svg class="eco-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                </a>
               </div>
             </div>
 
@@ -689,6 +695,47 @@
       </div>
       <div class="ext-body">
         <div class="ext-grid" id="pluginList"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PicoNest デバイスモーダル -->
+  <div class="ext-overlay" id="picoNestOverlay">
+    <div class="ext-modal pn-modal">
+      <div class="ext-header">
+        <div class="ext-header-left">
+          <span class="ext-title">PicoNest</span>
+          <span class="ext-subtitle">Raspberry Pi Pico 用拡張ボード</span>
+        </div>
+        <button class="ext-close" onclick="closePicoNestModal()">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="ext-body">
+        <div class="pn-image">
+          <img src="assets/PicoNest.jpg" alt="PicoNest 拡張ボード">
+        </div>
+        <div class="pn-features">
+          <h3 class="pn-features-title">主な機能</h3>
+          <ul class="pn-feature-list">
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              <div><strong>DCモーター制御</strong><span>モータードライバ内蔵で、4つの DC モーターを駆動できます。</span></div>
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              <div><strong>サーボモーター対応</strong><span>4つのサーボモーターを接続して角度制御が可能です。</span></div>
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              <div><strong>OLEDディスプレイ</strong><span>I2C 接続の OLED ディスプレイで情報を表示できます。</span></div>
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              <div><strong>各種センサー拡張</strong><span>GPIO・I2C・UART アナログ入力のピンを引き出し、センサーを手軽に追加できます。</span></div>
+            </li>
+          </ul>
+        </div>
       </div>
     </div>
   </div>

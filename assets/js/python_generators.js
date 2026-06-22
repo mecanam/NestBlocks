@@ -610,11 +610,31 @@ Blockly.Python['list_length'] = function(block) {
 };
 
 // 値を範囲内に制限（クランプ）
+// 絶対値（マイナスをプラスにする）
+Blockly.Python['math_abs'] = function(block) {
+    var num = Blockly.Python.valueToCode(block, 'NUM', Blockly.Python.ORDER_NONE) || '0';
+    return ['abs(' + num + ')', Blockly.Python.ORDER_FUNCTION_CALL];
+};
+
 Blockly.Python['math_clamp'] = function(block) {
     var value = Blockly.Python.valueToCode(block, 'VALUE', Blockly.Python.ORDER_NONE) || '0';
     var low = Blockly.Python.valueToCode(block, 'LOW', Blockly.Python.ORDER_NONE) || '0';
     var high = Blockly.Python.valueToCode(block, 'HIGH', Blockly.Python.ORDER_NONE) || '0';
     var code = 'max(' + low + ', min(' + high + ', ' + value + '))';
+    return [code, Blockly.Python.ORDER_FUNCTION_CALL];
+};
+
+// 範囲変換（Arduino の map 関数と同じ）
+Blockly.Python['math_map'] = function(block) {
+    Blockly.Python.definitions_['func_map'] =
+        'def _map(x, in_min, in_max, out_min, out_max):\n' +
+        '    return int((x - in_min) * (out_max - out_min) / (in_max - in_min)) + out_min';
+    var value    = Blockly.Python.valueToCode(block, 'VALUE',     Blockly.Python.ORDER_NONE) || '0';
+    var fromLow  = Blockly.Python.valueToCode(block, 'FROM_LOW',  Blockly.Python.ORDER_NONE) || '0';
+    var fromHigh = Blockly.Python.valueToCode(block, 'FROM_HIGH', Blockly.Python.ORDER_NONE) || '0';
+    var toLow    = Blockly.Python.valueToCode(block, 'TO_LOW',    Blockly.Python.ORDER_NONE) || '0';
+    var toHigh   = Blockly.Python.valueToCode(block, 'TO_HIGH',   Blockly.Python.ORDER_NONE) || '0';
+    var code = '_map(' + value + ', ' + fromLow + ', ' + fromHigh + ', ' + toLow + ', ' + toHigh + ')';
     return [code, Blockly.Python.ORDER_FUNCTION_CALL];
 };
 

@@ -42,8 +42,10 @@ var TOOLBOX_SHARED_CATEGORIES = [
       { kind: 'block', type: 'math_number' },
       { kind: 'block', type: 'math_arithmetic', inputs: { A: _num(1), B: _num(1) } },
       { kind: 'block', type: 'math_single', inputs: { NUM: _num(9) } },
+      { kind: 'block', type: 'math_abs', inputs: { NUM: _num(-9) } },
       { kind: 'block', type: 'math_trig', inputs: { NUM: _num(45) } },
-      { kind: 'block', type: 'math_clamp', inputs: { VALUE: _num(0), LOW: _num(-100), HIGH: _num(100) } }
+      { kind: 'block', type: 'math_clamp', inputs: { VALUE: _num(0), LOW: _num(-100), HIGH: _num(100) } },
+      { kind: 'block', type: 'math_map', inputs: { VALUE: _num(0), FROM_LOW: _num(0), FROM_HIGH: _num(1023), TO_LOW: _num(0), TO_HIGH: _num(255) } }
     ]
   },
   {

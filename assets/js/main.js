@@ -1,4 +1,9 @@
 // ──────────────────────────────
+// ドキュメントサイト URL（GitHub Pages デプロイ後に更新）
+// ──────────────────────────────
+var DOCS_URL = 'https://mecanam.github.io/NestBlocks_Document/';
+
+// ──────────────────────────────
 // プロジェクト管理（IndexedDB ベース）
 // ──────────────────────────────
 var currentProject = null; // 現在のプロジェクト
@@ -1277,6 +1282,17 @@ function closePluginModal() {
   document.getElementById('pluginOverlay').classList.remove('show');
 }
 
+// ──────────────────────────────
+// PicoNest デバイスモーダル
+// ──────────────────────────────
+function openPicoNestModal() {
+  document.getElementById('picoNestOverlay').classList.add('show');
+}
+
+function closePicoNestModal() {
+  document.getElementById('picoNestOverlay').classList.remove('show');
+}
+
 function renderPluginList() {
   var list = document.getElementById('pluginList');
   if (!list) return;
@@ -1977,6 +1993,14 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
+  // PicoNest モーダル：オーバーレイクリックで閉じる
+  var picoNestOverlay = document.getElementById('picoNestOverlay');
+  if (picoNestOverlay) {
+    picoNestOverlay.addEventListener('click', function(e) {
+      if (e.target === picoNestOverlay) closePicoNestModal();
+    });
+  }
+
   // 印刷モーダル：オーバーレイクリックで閉じる
   var printOverlay = document.getElementById('printOverlay');
   if (printOverlay) {
@@ -2003,6 +2027,10 @@ document.addEventListener('DOMContentLoaded', function() {
       if (e.target === helpOverlay) NestHelp.close();
     });
   }
+
+  // ── ドキュメントリンクを設定 ──
+  var docsLink = document.getElementById('docsLink');
+  if (docsLink) docsLink.href = DOCS_URL;
 
   // ── 言語セレクターの値を復元 ──
   var langSelect = document.getElementById('langSelect');
