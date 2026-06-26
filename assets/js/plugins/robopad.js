@@ -63,8 +63,8 @@ NestPlugins.register({
         this.appendDummyInput()
           .appendField('RoboPad ボタン')
           .appendField(new Blockly.FieldDropdown([
-            ['1', '0'], ['2', '1'], ['3', '2'], ['4', '3'],
-            ['5', '4'], ['6', '5'], ['7', '6'], ['8', '7']
+            ['A', '0'], ['B', '1'], ['X', '2'], ['Y', '3'],
+            ['R1', '4'], ['R2', '5'], ['L1', '6'], ['L2', '7']
           ]), 'BIT')
           .appendField('が押されている');
         this.setOutput(true, 'Boolean');
