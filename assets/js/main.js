@@ -1294,6 +1294,17 @@ function closePicoNestModal() {
 }
 
 // ──────────────────────────────
+// RoboPad モーダル
+// ──────────────────────────────
+function openRoboPadModal() {
+  document.getElementById('roboPadOverlay').classList.add('show');
+}
+
+function closeRoboPadModal() {
+  document.getElementById('roboPadOverlay').classList.remove('show');
+}
+
+// ──────────────────────────────
 // 更新履歴
 // 新しいバージョンは配列の先頭に追加してください。
 //   tag: 'new'（新機能）/ 'fix'（修正）/ 'improve'（改善）
@@ -2080,6 +2091,14 @@ document.addEventListener('DOMContentLoaded', function() {
   if (picoNestOverlay) {
     picoNestOverlay.addEventListener('click', function(e) {
       if (e.target === picoNestOverlay) closePicoNestModal();
+    });
+  }
+
+  // RoboPad モーダル：オーバーレイクリックで閉じる
+  var roboPadOverlay = document.getElementById('roboPadOverlay');
+  if (roboPadOverlay) {
+    roboPadOverlay.addEventListener('click', function(e) {
+      if (e.target === roboPadOverlay) closeRoboPadModal();
     });
   }
 

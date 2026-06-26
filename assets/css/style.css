@@ -1270,6 +1270,26 @@ body {
 .pn-feature-list li strong { font-size: 14px; font-weight: 800; }
 .pn-feature-list li span { font-size: 13px; color: var(--text3); line-height: 1.5; }
 
+/* RoboPad モーダル */
+.rp-modal { max-width: 400px; height: auto; }
+.rp-body { display: flex; flex-direction: column; align-items: center; gap: 20px; }
+.rp-desc { margin: 0; font-size: 14px; color: var(--text3); text-align: center; line-height: 1.6; }
+.rp-qr {
+  padding: 16px; border-radius: 16px;
+  background: #fff; border: 1.5px solid var(--bdr);
+  display: flex; align-items: center; justify-content: center;
+}
+.rp-qr img { display: block; }
+.rp-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 12px 24px; border-radius: 10px;
+  background: #FF5722; color: #fff;
+  font-size: 14px; font-weight: 800; text-decoration: none;
+  transition: opacity .15s;
+}
+.rp-btn:hover { opacity: .85; }
+.rp-btn svg { width: 16px; height: 16px; stroke: #fff; }
+
 /* 更新履歴モーダル */
 .cl-modal { max-width: 680px; height: auto; max-height: 88vh; }
 .cl-list { display: flex; flex-direction: column; gap: 28px; }
