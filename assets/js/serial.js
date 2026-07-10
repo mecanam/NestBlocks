@@ -354,12 +354,28 @@ var NestSerial = (function () {
     lineBuffer = '';
     console.log('[NestSerial] 停止処理開始');
 
+    // 全 GPIO ピン (GP0〜GP28) を入力モードにして出力を切断するスクリプト
+    // ソフトリセットは行わない（main.py の再実行を防ぐため）
+    var gpioCleanup = 'from machine import Pin\nfor i in range(29):\n try:\n  Pin(i,Pin.IN)\n except: pass\n';
+
     return interruptPico()
       .then(function () { return writeBytes([0x0D, 0x03]); }) // 3回目の中断
       .then(function () { return delay(100); })
       .then(function () { return writeBytes([0x02]); })       // Ctrl+B: friendly REPL に戻す
+      .then(function () { return delay(150); })
+      // Raw REPL に入る（ソフトリセットなし）
+      .then(function () {
+        var ready = waitFor('>', 3000);
+        return writeBytes([0x0D, 0x01])                       // CR + Ctrl+A: Raw REPL
+          .then(function () { return ready; });
+      })
+      // GPIO クリーンアップスクリプトを送信して実行
+      .then(function () { return writeChunked(gpioCleanup); })
+      .then(function () { return writeBytes([0x04]); })        // Ctrl+D: 実行
+      .then(function () { return delay(300); })
+      .then(function () { return writeBytes([0x02]); })        // Ctrl+B: friendly REPL に戻す
       .then(function () { return delay(100); })
-      .then(function () { console.log('[NestSerial] 停止完了'); });
+      .then(function () { console.log('[NestSerial] 停止完了（全 GPIO リセット済み）'); });
   }
 
   // ── コード書き込み（main.py として Pico に保存）──

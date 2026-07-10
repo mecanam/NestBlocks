@@ -1311,6 +1311,14 @@ function closeRoboPadModal() {
 // ──────────────────────────────
 var CHANGELOG = [
   {
+    version: 'v1.3.0',
+    date: '2026-07-10',
+    items: [
+      { tag: 'fix',     text: '停止ボタンを押したとき、モーター・サーボ等への出力が残る問題を修正しました。停止と同時に全 GPIO ピンへの出力が切れるようになりました。' },
+      { tag: 'improve', text: 'RoboPad プラグインのボタン表記を A / B / X / Y / R1 / R2 / L1 / L2 に変更しました。' },
+    ]
+  },
+  {
     version: 'v1.2.0',
     date: '2026-06-22',
     items: [
