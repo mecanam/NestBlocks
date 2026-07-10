@@ -354,9 +354,10 @@ var NestSerial = (function () {
     lineBuffer = '';
     console.log('[NestSerial] 停止処理開始');
 
-    // 全 GPIO ピン (GP0〜GP28) を入力モードにして出力を切断するスクリプト
+    // ユーザー用 GPIO (GP0〜GP22, GP26〜GP28) を入力モードにして出力を切断するスクリプト
+    // GP23/24/25/29 は Pico W の CYW43 無線チップが使用するため除外
     // ソフトリセットは行わない（main.py の再実行を防ぐため）
-    var gpioCleanup = 'from machine import Pin\nfor i in range(29):\n try:\n  Pin(i,Pin.IN)\n except: pass\n';
+    var gpioCleanup = 'from machine import Pin\nfor i in list(range(23))+[26,27,28]:\n try:\n  Pin(i,Pin.IN)\n except: pass\n';
 
     return interruptPico()
       .then(function () { return writeBytes([0x0D, 0x03]); }) // 3回目の中断
