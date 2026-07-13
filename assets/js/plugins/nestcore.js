@@ -64,6 +64,52 @@ NestPlugins.register({
       }
     };
 
+    // サーボ スピード制御
+    Blockly.Blocks['servo_move_speed'] = {
+      init: function () {
+        this.appendDummyInput()
+          .appendField('サーボ')
+          .appendField(new Blockly.FieldDropdown([
+            ['サーボ1', '1'], ['サーボ2', '2'],
+            ['サーボ3', '3'], ['サーボ4', '4']
+          ]), 'SERVO');
+        this.appendValueInput('ANGLE').setCheck('Number').appendField('を');
+        this.appendDummyInput().appendField('° 速度');
+        this.appendValueInput('SPEED').setCheck('Number');
+        this.appendDummyInput().appendField('%');
+        this.setInputsInline(true);
+        this.setPreviousStatement(true, 'SERVO_SYNC');
+        this.setNextStatement(true, 'SERVO_SYNC');
+        this.setColour('#E87070');
+        this.setTooltip('サーボモーターを指定した速度（1〜100%）で目標角度まで動かします\n「サーボを同時に動かす」ブロックの中で複数同時実行できます');
+      }
+    };
+
+    // サーボ 同時実行（コの字型）
+    Blockly.Blocks['servo_sync'] = {
+      init: function () {
+        this.appendDummyInput().appendField('サーボを同時に動かす');
+        this.appendStatementInput('DO').setCheck('SERVO_SYNC');
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour('#E87070');
+        this.setTooltip('中に入れたサーボスピード制御ブロックをすべて同時に実行します\nサーボスピード制御ブロック以外は自動的に排出されます');
+        this.setOnChange(function (event) {
+          if (this.isInFlyout) return;
+          if (event.type !== Blockly.Events.BLOCK_MOVE &&
+              event.type !== Blockly.Events.BLOCK_CREATE) return;
+          var child = this.getInputTargetBlock('DO');
+          while (child) {
+            var next = child.getNextBlock();
+            if (child.type !== 'servo_move_speed') {
+              child.dispose(true);
+            }
+            child = next;
+          }
+        });
+      }
+    };
+
     // OLED テキスト
     Blockly.Blocks['oled_text'] = {
       init: function () {
@@ -279,6 +325,61 @@ NestPlugins.register({
       return 'servo' + servo + '.duty_u16(int((0.5 + (' + angle + ') / 180.0 * 2.0) / 20.0 * 65535))\n';
     };
 
+    // サーボ スピード制御・同時実行
+    function ensureServoMoveSetup(servo) {
+      var pin = servoPins[servo];
+      Blockly.Python.definitions_['import_machine_pwm'] = 'from machine import Pin, PWM';
+      Blockly.Python.definitions_['import_uasyncio'] = 'import uasyncio';
+      Blockly.Python.definitions_['servo' + servo + '_setup'] =
+        'servo' + servo + ' = PWM(Pin(' + pin + '))\n' +
+        'servo' + servo + '.freq(50)\n' +
+        'servo' + servo + '.duty_u16(int((0.5 + 90 / 180.0 * 2.0) / 20.0 * 65535))';
+      Blockly.Python.definitions_['_servo_pos'] = '_servo_pos = {}';
+      Blockly.Python.definitions_['_servo_move_func'] =
+        'async def _servo_move(pwm, num, target, pct):\n' +
+        '    global _servo_pos\n' +
+        '    current = _servo_pos.get(num, 90)\n' +
+        '    target = int(target)\n' +
+        '    pct = max(1, min(100, int(pct)))\n' +
+        '    dps = 20 + (pct - 1) * 280 // 99\n' +
+        '    if current == target:\n' +
+        '        pwm.duty_u16(int((0.5 + target / 180.0 * 2.0) / 20.0 * 65535))\n' +
+        '        _servo_pos[num] = target\n' +
+        '        return\n' +
+        '    step = 1 if target > current else -1\n' +
+        '    delay_ms = max(1, 1000 // dps)\n' +
+        '    for a in range(current, target + step, step):\n' +
+        '        pwm.duty_u16(int((0.5 + a / 180.0 * 2.0) / 20.0 * 65535))\n' +
+        '        _servo_pos[num] = a\n' +
+        '        await uasyncio.sleep_ms(delay_ms)';
+    }
+
+    Blockly.Python['servo_move_speed'] = function (block) {
+      var servo = block.getFieldValue('SERVO');
+      var angle = Blockly.Python.valueToCode(block, 'ANGLE', Blockly.Python.ORDER_NONE) || '90';
+      var speed = Blockly.Python.valueToCode(block, 'SPEED', Blockly.Python.ORDER_NONE) || '60';
+      ensureServoMoveSetup(servo);
+      return 'await _servo_move(servo' + servo + ', ' + servo + ', ' + angle + ', ' + speed + ')\n';
+    };
+
+    Blockly.Python['servo_sync'] = function (block) {
+      var coroutines = [];
+      var child = block.getInputTargetBlock('DO');
+      while (child) {
+        if (child.type === 'servo_move_speed') {
+          var servo = child.getFieldValue('SERVO');
+          var angle = Blockly.Python.valueToCode(child, 'ANGLE', Blockly.Python.ORDER_NONE) || '90';
+          var speed = Blockly.Python.valueToCode(child, 'SPEED', Blockly.Python.ORDER_NONE) || '60';
+          ensureServoMoveSetup(servo);
+          coroutines.push('_servo_move(servo' + servo + ', ' + servo + ', ' + angle + ', ' + speed + ')');
+        }
+        child = child.getNextBlock();
+      }
+      if (coroutines.length === 0) return '';
+      if (coroutines.length === 1) return 'await ' + coroutines[0] + '\n';
+      return 'await uasyncio.gather(\n    ' + coroutines.join(',\n    ') + '\n)\n';
+    };
+
     // OLED
     Blockly.Python['oled_text'] = function (block) {
       ensureOledSetup();
@@ -387,7 +488,12 @@ NestPlugins.register({
       },
       {
         kind: 'category', name: 'サーボ', colour: '#E87070',
-        contents: [{ kind: 'block', type: 'servo_set_angle', inputs: { ANGLE: N(90) } }]
+        contents: [
+          { kind: 'block', type: 'servo_set_angle', inputs: { ANGLE: N(90) } },
+          { kind: 'sep' },
+          { kind: 'block', type: 'servo_move_speed', inputs: { ANGLE: N(90), SPEED: N(50) } },
+          { kind: 'block', type: 'servo_sync' }
+        ]
       },
       {
         kind: 'category', name: 'OLED', colour: '#5BA0E0',
