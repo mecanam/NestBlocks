@@ -131,16 +131,25 @@ NestPlugins.register({
 
     // コントローラーデータを受信したとき
     // ※ main.js の bleHandlers リストに 'gamepad_on_data' が追加されていること前提
+    // ※ MicroPython のスケジュール済みコールバックは例外がサイレントに飲み込まれるため
+    //   try/except で必ずエラーを可視化する
     Blockly.Python['gamepad_on_data'] = function (block) {
       ensureGamepadBleSetup();
+      Blockly.Python.definitions_['import_sys'] = 'import sys';
       var body = Blockly.Python.statementToCode(block, 'DO') || '  pass\n';
+      // statementToCode は 2 スペースインデント → try ブロック内用に 2 スペース追加
+      var innerBody = body.replace(/^(?!\s*$)/mg, '  ');
       return '@ble.on_string\n' +
              'def _on_gamepad_data(_ble_text):\n' +
-             '  _gp_vals = _ble_text.split(\',\')\n' +
-             '  _gp_x = int(_gp_vals[0])\n' +
-             '  _gp_y = int(_gp_vals[1])\n' +
-             '  _gp_btns = int(_gp_vals[2])\n' +
-             body + '\n';
+             '  try:\n' +
+             '    _gp_vals = _ble_text.split(\',\')\n' +
+             '    _gp_x = int(_gp_vals[0])\n' +
+             '    _gp_y = int(_gp_vals[1])\n' +
+             '    _gp_btns = int(_gp_vals[2])\n' +
+             innerBody +
+             '  except Exception as _gp_e:\n' +
+             '    sys.print_exception(_gp_e)\n' +
+             '\n';
     };
 
     // ジョイスティック X (-100〜100)

@@ -576,7 +576,10 @@ function generateCode() {
       finalCode += 'uasyncio.run(main())\n';
     }
   } else if (hasBle) {
-    finalCode += 'uasyncio.run(ble.start())\n';
+    // タスクなし・受信専用: ble.start(main()) で確実にスキャンを起動する
+    // ble.start() 単独だと piconest_ble がスキャンモードに入らない場合があるため
+    finalCode += 'async def main():\n  while True:\n    await uasyncio.sleep_ms(10)\n\n';
+    finalCode += 'uasyncio.run(ble.start(main()))\n';
   }
 
   // クリーンアップ
