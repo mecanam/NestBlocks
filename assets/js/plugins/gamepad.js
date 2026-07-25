@@ -9,7 +9,7 @@
 // ──────────────────────────────
 NestPlugins.register({
   id: 'gamepad',
-  name: 'GamePad',
+  name: 'コントローラー',
   description: 'コントローラー基板からBLEでジョイスティック・ボタンデータを受信します。',
   icon: '🕹️',
   color: '#7C4DFF',
@@ -22,7 +22,7 @@ NestPlugins.register({
     Blockly.Blocks['gamepad_join'] = {
       init: function () {
         this.appendDummyInput()
-          .appendField('GamePad デバイス名')
+          .appendField('コントローラー デバイス名')
           .appendField(new Blockly.FieldTextInput('gamepad'), 'NAME')
           .appendField('で接続');
         this.setPreviousStatement(true, null);
@@ -220,7 +220,7 @@ NestPlugins.register({
   },
 
   toolbox: {
-    kind: 'category', name: 'GamePad', colour: '#7C4DFF',
+    kind: 'category', name: 'コントローラー', colour: '#7C4DFF',
     contents: [
       { kind: 'block', type: 'gamepad_join' },
       { kind: 'sep', gap: '16' },

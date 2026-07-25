@@ -244,11 +244,11 @@
               </div>
             </div>
 
-            <!-- 対応アプリ -->
+            <!-- アプリ -->
             <div class="eco-group lp-reveal">
               <div class="eco-group-head">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18.01" stroke-width="3" stroke-linecap="round"/></svg>
-                <h2>対応アプリ</h2>
+                <h2>アプリ</h2>
               </div>
               <div class="eco-cards">
                 <a class="eco-card" href="#" onclick="openRoboPadModal(); return false;">
@@ -258,6 +258,16 @@
                   <div class="eco-card-body">
                     <div class="eco-card-name">RoboPad</div>
                     <div class="eco-card-desc">スマートフォンをコントローラーに。BLE 接続でジョイスティック・ボタン操作を送信できます。</div>
+                  </div>
+                  <svg class="eco-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                </a>
+                <a class="eco-card" href="calibration.html">
+                  <div class="eco-card-icon" style="background: rgba(124,77,255,.1); color: #7C4DFF;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 21v-7m0-4V3m8 18v-3m0-4V3m8 18v-9m0-4V3"/><path d="M1 14h6M9 10h6M17 15h6"/></svg>
+                  </div>
+                  <div class="eco-card-body">
+                    <div class="eco-card-name">コントローラーキャリブレーション</div>
+                    <div class="eco-card-desc">ゲームパッドコントローラーのジョイスティックを較正し、Pico に書き込みます。</div>
                   </div>
                   <svg class="eco-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
                 </a>
@@ -325,7 +335,7 @@
             </div>
           </div>
           <div class="footer-bottom">
-            <button class="footer-version" onclick="openChangelogModal()" title="更新履歴を見る">NestBlocks <span id="footerVersion">v1.2.0</span></button>
+            <button class="footer-version" onclick="openChangelogModal()" title="更新履歴を見る">NestBlocks <span id="footerVersion">v1.4.0</span></button>
             <span class="footer-sep">·</span>
             <span class="footer-copy">Powered by Blockly</span>
           </div>
@@ -537,7 +547,7 @@
         <div class="sg">
           <div class="sg-title" data-i18n="settings.about">NestBlocks について</div>
           <div class="sg-card">
-            <div class="sg-item"><div><div class="sg-label">バージョン</div><div class="sg-desc">v1.3.0</div></div></div>
+            <div class="sg-item"><div><div class="sg-label">バージョン</div><div class="sg-desc">v1.4.0</div></div></div>
             <div class="sg-item"><div><div class="sg-label">Blockly</div><div class="sg-desc" id="blocklyVersion">-</div></div></div>
             <div class="sg-item"><div><div class="sg-label" data-i18n="settings.browser">対応ブラウザ</div><div class="sg-desc">Chrome / Edge（Web Serial API対応）</div></div></div>
             <div class="sg-item"><div><div class="sg-label" data-i18n="settings.license">ライセンス</div><div class="sg-desc">Apache License 2.0（Blockly）</div></div></div>
