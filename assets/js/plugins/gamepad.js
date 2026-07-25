@@ -114,12 +114,6 @@ NestPlugins.register({
 
   initGenerators: function () {
 
-    // gamepad_on_data は同期コールバック（def）のため、
-    // 内部でasync関数を呼ぶとき await ではなく uasyncio.create_task() を使うよう登録
-    if (typeof registerSyncCallback === 'function') {
-      registerSyncCallback('gamepad_on_data');
-    }
-
     function ensureGamepadBleSetup() {
       Blockly.Python.definitions_['import_piconest_ble'] = 'from piconest_ble import PicoNestBroadcast';
       if (!Blockly.Python.definitions_['ble_setup']) {
@@ -142,6 +136,10 @@ NestPlugins.register({
     Blockly.Python['gamepad_on_data'] = function (block) {
       ensureGamepadBleSetup();
       Blockly.Python.definitions_['import_sys'] = 'import sys';
+      // statementToCode の前に登録する（コード生成時点では python_generators.js が確実にロード済み）
+      if (typeof registerSyncCallback === 'function') {
+        registerSyncCallback('gamepad_on_data');
+      }
       var body = Blockly.Python.statementToCode(block, 'DO') || '  pass\n';
       // statementToCode は 2 スペースインデント → try ブロック内用に 2 スペース追加
       var innerBody = body.replace(/^(?!\s*$)/mg, '  ');
