@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GamePad キャリブレーション — NestBlocks</title>
+
+<!-- NestBlocks と同じフォント -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@700;800;900&family=Quicksand:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<!-- NestBlocks 共通スタイル -->
+<link rel="stylesheet" href="assets/css/style.css">
+
+<style>
+  /* ── ページレイアウト上書き（NestBlocks の overflow:hidden を解除）── */
+  body {
+    height: auto;
+    min-height: 100vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .cal-wrap {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    padding: 28px 16px 60px;
+  }
+
+  .cal-main {
+    width: 100%;
+    max-width: 520px;
+  }
+
+  /* ── カード ── */
+  .cal-card {
+    background: var(--bg-s);
+    border: 1px solid var(--bdr);
+    border-radius: var(--r);
+    padding: 28px;
+    margin-bottom: 16px;
+  }
+
+  /* ── ステップインジケーター ── */
+  .cal-steps {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 28px;
+  }
+  .cal-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+  }
+  .cal-step-circle {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    border: 2px solid var(--bdr);
+    background: var(--bg-s);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700;
+    color: var(--text3);
+    transition: all 0.25s;
+    position: relative; z-index: 1;
+  }
+  .cal-step.active  .cal-step-circle { border-color: var(--orange); background: var(--orange); color: #fff; }
+  .cal-step.done    .cal-step-circle { border-color: var(--green);  background: var(--green);  color: #fff; }
+  .cal-step-label   { font-size: 11px; color: var(--text3); font-weight: 600; text-align: center; }
+  .cal-step.active  .cal-step-label  { color: var(--orange); }
+  .cal-step.done    .cal-step-label  { color: var(--green);  }
+  .cal-step-line {
+    flex: 1;
+    height: 2px;
+    background: var(--bdr);
+    margin-top: 14px;
+    transition: background 0.25s;
+  }
+  .cal-step-line.done { background: var(--green); }
+
+  /* ── パネル切り替え ── */
+  .cal-panel { display: none; }
+  .cal-panel.active { display: block; }
+
+  /* ── タイトル・テキスト ── */
+  .cal-title {
+    font-family: var(--fl);
+    font-size: 17px;
+    font-weight: 800;
+    margin-bottom: 6px;
+    color: var(--text);
+  }
+  .cal-sub {
+    font-size: 13px;
+    color: var(--text2);
+    line-height: 1.6;
+    margin-bottom: 20px;
+  }
+  .cal-sub strong { color: var(--text); }
+
+  /* ── ボタン ── */
+  .cal-btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
+
+  .cal-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+    height: 38px; padding: 0 20px;
+    border-radius: 10px;
+    font-family: var(--f); font-size: 13px; font-weight: 700;
+    cursor: pointer; transition: all 0.2s cubic-bezier(.16,1,.3,1);
+    text-decoration: none;
+    border: none;
+  }
+  .cal-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .cal-btn-primary {
+    background: var(--grad-orange);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(224,75,22,.2);
+  }
+  .cal-btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(224,75,22,.3); }
+  .cal-btn-outline {
+    background: none;
+    border: 1.5px solid var(--bdr);
+    color: var(--text2);
+  }
+  .cal-btn-outline:hover { background: var(--bg-h); color: var(--text); border-color: var(--text3); }
+
+  /* ── 接続ステータスバッジ ── */
+  .cal-status-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px; font-weight: 700;
+    margin-bottom: 14px;
+    font-family: var(--f);
+  }
+  .cal-status-badge .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+  }
+  .badge-connected {
+    background: rgba(52,199,89,.08);
+    color: var(--green);
+    border: 1px solid rgba(52,199,89,.2);
+  }
+  .badge-connected .dot { background: var(--green); box-shadow: 0 0 6px rgba(52,199,89,.5); }
+
+  /* ── 数値表示グリッド ── */
+  .cal-vals {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin: 16px 0;
+  }
+  .cal-val-box {
+    background: var(--bg);
+    border: 1px solid var(--bdr);
+    border-radius: var(--rs);
+    padding: 10px 14px;
+  }
+  .cal-val-label { font-size: 11px; color: var(--text3); font-weight: 600; margin-bottom: 3px; font-family: var(--f); }
+  .cal-val-num   { font-size: 20px; font-weight: 700; font-family: var(--m); color: var(--text); }
+  .cal-val-sub   { font-size: 11px; color: var(--text3); margin-top: 2px; font-family: var(--m); }
+
+  /* ── ジョイスティックビジュアライザー ── */
+  .cal-joy-wrap {
+    display: flex;
+    justify-content: center;
+    margin: 16px 0 8px;
+  }
+  .joy-svg {
+    width: 180px; height: 180px;
+    border-radius: 50%;
+    background: var(--bg);
+    border: 1.5px solid var(--bdr);
+    overflow: visible;
+  }
+
+  /* ── プログレスバー ── */
+  .cal-progress { margin-top: 18px; }
+  .cal-progress-header {
+    display: flex; justify-content: space-between;
+    font-size: 12px; color: var(--text3); font-weight: 600;
+    font-family: var(--f); margin-bottom: 6px;
+  }
+  .cal-progress-track {
+    height: 6px;
+    background: var(--bdr);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .cal-progress-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: var(--grad-orange);
+    transition: width 0.15s linear;
+  }
+
+  /* ── 結果グリッド ── */
+  .cal-result-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin: 16px 0;
+  }
+  .cal-result-item {
+    background: var(--bg);
+    border: 1px solid var(--bdr);
+    border-radius: var(--rs);
+    padding: 10px 14px;
+  }
+  .cal-result-item.full { grid-column: 1 / -1; }
+  .cal-result-key   { font-size: 11px; color: var(--text3); font-weight: 600; margin-bottom: 3px; }
+  .cal-result-value { font-size: 15px; font-weight: 700; font-family: var(--m); color: var(--text); }
+
+  /* ── スピナー ── */
+  .cal-spinner-wrap { text-align: center; padding: 24px 0; }
+  .cal-spinner {
+    display: inline-block;
+    width: 36px; height: 36px;
+    border: 3px solid var(--bdr);
+    border-top-color: var(--orange);
+    border-radius: 50%;
+    animation: cal-spin 0.8s linear infinite;
+    margin-bottom: 14px;
+  }
+  @keyframes cal-spin { to { transform: rotate(360deg); } }
+  .cal-spinner-text { font-size: 14px; color: var(--text2); }
+
+  /* ── 完了アイコン ── */
+  .cal-done-icon  { font-size: 48px; text-align: center; margin-bottom: 10px; }
+  .cal-done-title {
+    font-family: var(--fl); font-size: 20px; font-weight: 800;
+    text-align: center; margin-bottom: 5px;
+  }
+  .cal-done-sub   { font-size: 13px; color: var(--text2); text-align: center; margin-bottom: 18px; }
+
+  /* ── 区切り ── */
+  .cal-divider { height: 1px; background: var(--bdr); margin: 18px 0; }
+
+  /* ── 手順リスト ── */
+  .cal-steps-list {
+    list-style: none;
+    display: flex; flex-direction: column; gap: 8px;
+    margin: 14px 0 20px;
+  }
+  .cal-steps-list li {
+    display: flex; align-items: flex-start; gap: 10px;
+    font-size: 13px; color: var(--text2); line-height: 1.5;
+  }
+  .cal-steps-list .num {
+    flex-shrink: 0;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: var(--bg);
+    border: 1.5px solid var(--bdr);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; color: var(--text3);
+    margin-top: 1px;
+  }
+
+  /* エラーテキスト */
+  .cal-error { color: var(--red); font-size: 13px; margin-top: 10px; font-family: var(--f); }
+</style>
+</head>
+<body>
+
+<!-- ── ヘッダー（NestBlocks 共通スタイル） ── -->
+<header class="header">
+  <div class="logo" onclick="location.href='index.html'" style="cursor:pointer">
+    <div class="logo-icon">
+      <svg viewBox="0 0 54 54" fill="none">
+        <rect x="0" y="0" width="14" height="38" rx="3.5" fill="currentColor"/>
+        <rect x="0" y="28" width="30" height="14" rx="3.5" fill="currentColor"/>
+        <rect x="24" y="16" width="14" height="38" rx="3.5" fill="var(--orange)"/>
+        <rect x="24" y="16" width="30" height="14" rx="3.5" fill="var(--orange)"/>
+      </svg>
+    </div>
+    <div class="logo-text">Nest<span>Blocks</span></div>
+  </div>
+
+  <div style="width:1px;height:20px;background:var(--bdr);margin:0 12px"></div>
+  <span style="font-size:13px;font-weight:700;color:var(--text2)">🕹️ GamePad キャリブレーション</span>
+
+  <div class="spacer"></div>
+
+  <div id="header-status" style="display:none">
+    <button class="connect-btn connected" style="cursor:default">
+      <span class="dot"></span>Pico 接続中
+    </button>
+  </div>
+
+  <a href="index.html" class="icon-btn" title="NestBlocks へ戻る" style="margin-left:8px;text-decoration:none">
+    <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+  </a>
+</header>
+
+<!-- ── メインコンテンツ ── -->
+<div class="cal-wrap">
+<div class="cal-main">
+
+  <!-- ステップインジケーター (計測フェーズのみ表示) -->
+  <div class="cal-steps" id="step-indicator" style="display:none">
+    <div class="cal-step" id="step1">
+      <div class="cal-step-circle">1</div>
+      <div class="cal-step-label">中立<br>位置</div>
+    </div>
+    <div class="cal-step-line" id="line12"></div>
+    <div class="cal-step" id="step2">
+      <div class="cal-step-circle">2</div>
+      <div class="cal-step-label">最大<br>範囲</div>
+    </div>
+    <div class="cal-step-line" id="line23"></div>
+    <div class="cal-step" id="step3">
+      <div class="cal-step-circle">3</div>
+      <div class="cal-step-label">書き<br>込み</div>
+    </div>
+  </div>
+
+  <!-- ════════ パネル: 接続待ち ════════ -->
+  <div class="cal-card cal-panel active" id="panel-idle">
+    <div class="cal-title">Pico を USB で接続してください</div>
+    <div class="cal-sub" style="margin-top:6px">
+      <strong>controller.py</strong> を書き込んだコントローラー基板を USB ケーブルで接続してから「接続」を押してください。
+    </div>
+    <div class="cal-divider"></div>
+    <div class="cal-sub" style="font-size:12px;margin-bottom:0">
+      ⚠️ Chrome または Edge が必要です（Web Serial API 対応ブラウザ）
+    </div>
+    <div class="cal-btn-row">
+      <button class="cal-btn cal-btn-primary" id="btn-connect">🔌 接続</button>
+    </div>
+    <p class="cal-error" id="connect-error"></p>
+  </div>
+
+  <!-- ════════ パネル: 開始待ち ════════ -->
+  <div class="cal-card cal-panel" id="panel-ready">
+    <div class="cal-status-badge badge-connected"><span class="dot"></span>Pico 接続済み</div>
+    <div class="cal-title">キャリブレーションを開始します</div>
+    <ul class="cal-steps-list">
+      <li><span class="num">1</span>ジョイスティックを<strong style="color:var(--text)">触らず</strong>中立のまま待つ（3秒）</li>
+      <li><span class="num">2</span>ジョイスティックを<strong style="color:var(--text)">ゆっくり大きく</strong>全方向へ回す（5秒）</li>
+      <li><span class="num">3</span>計測したパラメータを Pico へ自動書き込み</li>
+    </ul>
+    <div class="cal-btn-row">
+      <button class="cal-btn cal-btn-primary" id="btn-start">▶ 開始</button>
+      <button class="cal-btn cal-btn-outline" id="btn-disconnect">切断</button>
+    </div>
+  </div>
+
+  <!-- ════════ パネル: 中立計測 ════════ -->
+  <div class="cal-card cal-panel" id="panel-neutral">
+    <div class="cal-title">① ジョイスティックを離してください</div>
+    <div class="cal-sub">中立位置（センター）を計測しています...</div>
+
+    <div class="cal-joy-wrap">
+      <svg class="joy-svg" viewBox="-1.1 -1.1 2.2 2.2">
+        <circle cx="0" cy="0" r="1" fill="none" stroke="var(--bdr)" stroke-width="0.05"/>
+        <line x1="-1" y1="0" x2="1" y2="0" stroke="var(--bdr)" stroke-width="0.025"/>
+        <line x1="0" y1="-1" x2="0" y2="1" stroke="var(--bdr)" stroke-width="0.025"/>
+        <circle id="joy-dot" cx="0" cy="0" r="0.1" fill="var(--orange)"/>
+      </svg>
+    </div>
+
+    <div class="cal-vals">
+      <div class="cal-val-box">
+        <div class="cal-val-label">X（生値）</div>
+        <div class="cal-val-num" id="raw-x">—</div>
+        <div class="cal-val-sub" id="sub-x">平均: —</div>
+      </div>
+      <div class="cal-val-box">
+        <div class="cal-val-label">Y（生値）</div>
+        <div class="cal-val-num" id="raw-y">—</div>
+        <div class="cal-val-sub" id="sub-y">平均: —</div>
+      </div>
+    </div>
+
+    <div class="cal-progress">
+      <div class="cal-progress-header">
+        <span>中立位置を計測中</span>
+        <span id="timer1">3.0 秒</span>
+      </div>
+      <div class="cal-progress-track">
+        <div class="cal-progress-fill" id="fill1" style="width:0%"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════ パネル: 範囲計測 ════════ -->
+  <div class="cal-card cal-panel" id="panel-rotate">
+    <div class="cal-title">② ゆっくり大きく全方向へ回してください</div>
+    <div class="cal-sub">ジョイスティックの最大範囲を計測しています...</div>
+
+    <div class="cal-joy-wrap">
+      <svg class="joy-svg" viewBox="-1.1 -1.1 2.2 2.2">
+        <circle cx="0" cy="0" r="1" fill="none" stroke="var(--bdr)" stroke-width="0.05"/>
+        <line x1="-1" y1="0" x2="1" y2="0" stroke="var(--bdr)" stroke-width="0.025"/>
+        <line x1="0" y1="-1" x2="0" y2="1" stroke="var(--bdr)" stroke-width="0.025"/>
+        <rect id="range-rect" x="0" y="0" width="0" height="0"
+              fill="rgba(224,75,22,.06)" stroke="var(--orange)" stroke-width="0.03"/>
+        <circle id="center-dot" cx="0" cy="0" r="0.07" fill="var(--green)"/>
+        <circle id="joy-dot2" cx="0" cy="0" r="0.1" fill="var(--orange)"/>
+      </svg>
+    </div>
+
+    <div class="cal-vals">
+      <div class="cal-val-box">
+        <div class="cal-val-label">X 範囲</div>
+        <div class="cal-val-num" id="range-x" style="font-size:14px">—</div>
+        <div class="cal-val-sub" id="cur-x">現在: —</div>
+      </div>
+      <div class="cal-val-box">
+        <div class="cal-val-label">Y 範囲</div>
+        <div class="cal-val-num" id="range-y" style="font-size:14px">—</div>
+        <div class="cal-val-sub" id="cur-y">現在: —</div>
+      </div>
+    </div>
+
+    <div class="cal-progress">
+      <div class="cal-progress-header">
+        <span>最大範囲を計測中</span>
+        <span id="timer2">5.0 秒</span>
+      </div>
+      <div class="cal-progress-track">
+        <div class="cal-progress-fill" id="fill2" style="width:0%"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════ パネル: 書き込み中 ════════ -->
+  <div class="cal-card cal-panel" id="panel-upload">
+    <div class="cal-spinner-wrap">
+      <div class="cal-spinner"></div>
+      <div class="cal-spinner-text" id="upload-status">キャリブレーションデータを書き込み中...</div>
+    </div>
+  </div>
+
+  <!-- ════════ パネル: 完了 ════════ -->
+  <div class="cal-card cal-panel" id="panel-done">
+    <div class="cal-done-icon">✅</div>
+    <div class="cal-done-title">書き込み完了！</div>
+    <div class="cal-done-sub">以下のパラメータで main.py を Pico に書き込みました。</div>
+
+    <div class="cal-result-grid" id="result-grid"></div>
+
+    <div class="cal-divider"></div>
+    <div class="cal-btn-row" style="justify-content:center">
+      <button class="cal-btn cal-btn-outline" id="btn-again">🔄 もう一度キャリブレーション</button>
+      <a href="index.html" class="cal-btn cal-btn-primary">NestBlocks へ戻る</a>
+    </div>
+  </div>
+
+</div><!-- .cal-main -->
+</div><!-- .cal-wrap -->
+
+<script src="assets/js/serial.js"></script>
+<script>
+// ════════════════════════════════════════════════
+// 設定値
+// ════════════════════════════════════════════════
+var BAUD_RATE     = 115200;
+var NEUTRAL_SECS  = 3;
+var ROTATE_SECS   = 5;
+
+// Pico から生の ADC 値を取得する一時コード
+var TEMP_CODE = [
+  'from machine import Pin, ADC',
+  'import uasyncio',
+  'joy_x = ADC(Pin(26))',
+  'joy_y = ADC(Pin(27))',
+  'async def main():',
+  '    while True:',
+  '        print(str(joy_x.read_u16())+","+str(joy_y.read_u16()))',
+  '        await uasyncio.sleep(0.05)',
+  'uasyncio.run(main())'
+].join('\n');
+
+// ════════════════════════════════════════════════
+// 状態
+// ════════════════════════════════════════════════
+var state = 'idle';
+var cal = newCal();
+var phaseTimer = null;
+var phaseStart = 0;
+var phaseDuration = 0;
+
+function newCal() {
+  return {
+    cx: 32768, cy: 32768,
+    xmin: 65535, xmax: 0,
+    ymin: 65535, ymax: 0,
+    dz: 5,
+    neutralSamples: [],
+    _dzRawX: 0, _dzRawY: 0
+  };
+}
+
+// ════════════════════════════════════════════════
+// UI ユーティリティ
+// ════════════════════════════════════════════════
+function showPanel(id) {
+  document.querySelectorAll('.cal-panel').forEach(function(p) {
+    p.classList.toggle('active', p.id === id);
+  });
+}
+
+function setStep(n) {
+  var ind = document.getElementById('step-indicator');
+  ind.style.display = n > 0 ? 'flex' : 'none';
+  for (var i = 1; i <= 3; i++) {
+    var el = document.getElementById('step' + i);
+    el.className = 'cal-step' + (i < n ? ' done' : i === n ? ' active' : '');
+  }
+  document.getElementById('line12').className = 'cal-step-line' + (n > 1 ? ' done' : '');
+  document.getElementById('line23').className = 'cal-step-line' + (n > 2 ? ' done' : '');
+}
+
+// raw ADC (0〜65535) → SVG座標 (-1〜1)
+// X: 右が低ADC→右が正 / Y: 上が高ADC→上が-Y（SVGは下が正）なので反転
+function rawToSvg(raw, center) {
+  return Math.max(-1, Math.min(1, -(raw - center) / 32768));
+}
+
+function updateDot(dotId, rawX, rawY, cx, cy) {
+  var dot = document.getElementById(dotId);
+  if (!dot) return;
+  dot.setAttribute('cx', rawToSvg(rawX, cx).toFixed(3));
+  dot.setAttribute('cy', rawToSvg(rawY, cy).toFixed(3));
+}
+
+function updateRangeRect(xmin, xmax, ymin, ymax, cx, cy) {
+  var rect = document.getElementById('range-rect');
+  if (!rect) return;
+  var x1 = rawToSvg(xmax, cx), x2 = rawToSvg(xmin, cx);
+  var y1 = rawToSvg(ymax, cy), y2 = rawToSvg(ymin, cy);
+  var rx = Math.min(x1, x2), ry = Math.min(y1, y2);
+  rect.setAttribute('x', rx.toFixed(3));
+  rect.setAttribute('y', ry.toFixed(3));
+  rect.setAttribute('width',  Math.abs(x2 - x1).toFixed(3));
+  rect.setAttribute('height', Math.abs(y2 - y1).toFixed(3));
+}
+
+// ════════════════════════════════════════════════
+// シリアルデータ処理
+// ════════════════════════════════════════════════
+function onSerialData(line) {
+  var parts = line.trim().split(',');
+  if (parts.length !== 2) return;
+  var rx = parseInt(parts[0], 10);
+  var ry = parseInt(parts[1], 10);
+  if (isNaN(rx) || isNaN(ry)) return;
+  if (state === 'neutral') handleNeutral(rx, ry);
+  else if (state === 'rotate') handleRotate(rx, ry);
+}
+
+// ════════════════════════════════════════════════
+// フェーズ 1: 中立計測
+// ════════════════════════════════════════════════
+function startNeutral() {
+  state = 'neutral';
+  cal.neutralSamples = [];
+  showPanel('panel-neutral');
+  setStep(1);
+  phaseStart    = Date.now();
+  phaseDuration = NEUTRAL_SECS * 1000;
+  phaseTimer    = setInterval(tickNeutral, 60);
+}
+
+function handleNeutral(rx, ry) {
+  cal.neutralSamples.push({ x: rx, y: ry });
+  var n = cal.neutralSamples.length;
+  var sx = 0, sy = 0;
+  for (var i = 0; i < n; i++) { sx += cal.neutralSamples[i].x; sy += cal.neutralSamples[i].y; }
+  var ax = Math.round(sx / n), ay = Math.round(sy / n);
+
+  document.getElementById('raw-x').textContent = rx;
+  document.getElementById('raw-y').textContent = ry;
+  document.getElementById('sub-x').textContent = '平均: ' + ax;
+  document.getElementById('sub-y').textContent = '平均: ' + ay;
+  updateDot('joy-dot', rx, ry, 32768, 32768);
+}
+
+function tickNeutral() {
+  var elapsed = Date.now() - phaseStart;
+  var pct = Math.min(100, elapsed / phaseDuration * 100);
+  document.getElementById('fill1').style.width = pct + '%';
+  document.getElementById('timer1').textContent =
+    (Math.max(0, phaseDuration - elapsed) / 1000).toFixed(1) + ' 秒';
+  if (elapsed >= phaseDuration) {
+    clearInterval(phaseTimer);
+    finishNeutral();
+  }
+}
+
+function finishNeutral() {
+  var s = cal.neutralSamples, n = s.length;
+  if (n === 0) { onError('中立データを取得できませんでした'); return; }
+  var sx = 0, sy = 0;
+  for (var i = 0; i < n; i++) { sx += s[i].x; sy += s[i].y; }
+  cal.cx = Math.round(sx / n);
+  cal.cy = Math.round(sy / n);
+  cal._dzRawX = 0; cal._dzRawY = 0;
+  for (var j = 0; j < n; j++) {
+    cal._dzRawX = Math.max(cal._dzRawX, Math.abs(s[j].x - cal.cx));
+    cal._dzRawY = Math.max(cal._dzRawY, Math.abs(s[j].y - cal.cy));
+  }
+  startRotate();
+}
+
+// ════════════════════════════════════════════════
+// フェーズ 2: 範囲計測
+// ════════════════════════════════════════════════
+function startRotate() {
+  state = 'rotate';
+  cal.xmin = 65535; cal.xmax = 0;
+  cal.ymin = 65535; cal.ymax = 0;
+  showPanel('panel-rotate');
+  setStep(2);
+  phaseStart    = Date.now();
+  phaseDuration = ROTATE_SECS * 1000;
+  phaseTimer    = setInterval(tickRotate, 60);
+}
+
+function handleRotate(rx, ry) {
+  if (rx < cal.xmin) cal.xmin = rx;
+  if (rx > cal.xmax) cal.xmax = rx;
+  if (ry < cal.ymin) cal.ymin = ry;
+  if (ry > cal.ymax) cal.ymax = ry;
+  document.getElementById('range-x').textContent = cal.xmin + ' 〜 ' + cal.xmax;
+  document.getElementById('range-y').textContent = cal.ymin + ' 〜 ' + cal.ymax;
+  document.getElementById('cur-x').textContent = '現在: ' + rx;
+  document.getElementById('cur-y').textContent = '現在: ' + ry;
+  updateDot('joy-dot2', rx, ry, cal.cx, cal.cy);
+  updateRangeRect(cal.xmin, cal.xmax, cal.ymin, cal.ymax, cal.cx, cal.cy);
+}
+
+function tickRotate() {
+  var elapsed = Date.now() - phaseStart;
+  var pct = Math.min(100, elapsed / phaseDuration * 100);
+  document.getElementById('fill2').style.width = pct + '%';
+  document.getElementById('timer2').textContent =
+    (Math.max(0, phaseDuration - elapsed) / 1000).toFixed(1) + ' 秒';
+  if (elapsed >= phaseDuration) {
+    clearInterval(phaseTimer);
+    finishRotate();
+  }
+}
+
+function finishRotate() {
+  // 不感帯 = 中立ぶれ ÷ 有効片側範囲 × 100 + 2% 余裕
+  var rangeX = Math.min(cal.cx - cal.xmin, cal.xmax - cal.cx);
+  var rangeY = Math.min(cal.cy - cal.ymin, cal.ymax - cal.cy);
+  var dzX = Math.ceil(cal._dzRawX / Math.max(1, rangeX) * 100) + 2;
+  var dzY = Math.ceil(cal._dzRawY / Math.max(1, rangeY) * 100) + 2;
+  cal.dz = Math.min(20, Math.max(dzX, dzY));
+  startUpload();
+}
+
+// ════════════════════════════════════════════════
+// フェーズ 3: Pico への書き込み
+// ════════════════════════════════════════════════
+function startUpload() {
+  state = 'upload';
+  showPanel('panel-upload');
+  setStep(3);
+  document.getElementById('upload-status').textContent = 'キャリブレーションデータを書き込み中...';
+
+  NestSerial.stopExecution()
+    .then(function() {
+      return NestSerial.uploadCode(buildCode());
+    })
+    .then(function() {
+      showDone();
+    })
+    .catch(function(err) {
+      document.getElementById('upload-status').textContent = 'エラー: ' + err.message;
+    });
+}
+
+function showDone() {
+  state = 'done';
+  showPanel('panel-done');
+  setStep(3);
+
+  function ri(key, val, full) {
+    return '<div class="cal-result-item' + (full ? ' full' : '') + '">' +
+           '<div class="cal-result-key">' + key + '</div>' +
+           '<div class="cal-result-value">' + val + '</div></div>';
+  }
+  document.getElementById('result-grid').innerHTML =
+    ri('中立 X (CAL_CX)',   cal.cx)  +
+    ri('中立 Y (CAL_CY)',   cal.cy)  +
+    ri('X 最小 (CAL_XMIN)', cal.xmin) +
+    ri('X 最大 (CAL_XMAX)', cal.xmax) +
+    ri('Y 最小 (CAL_YMIN)', cal.ymin) +
+    ri('Y 最大 (CAL_YMAX)', cal.ymax) +
+    ri('不感帯 (CAL_DZ)',    cal.dz + ' %', true);
+}
+
+// ════════════════════════════════════════════════
+// calibrated controller.py 生成
+// ════════════════════════════════════════════════
+function buildCode() {
+  return [
+    '# 送信機（コントローラー）— キャリブレーション済み',
+    '# NestBlocks calibration.html で測定したパラメータを使用しています',
+    '',
+    'from piconest_ble import PicoNestBroadcast',
+    'from machine import Pin, ADC',
+    'import uasyncio',
+    '',
+    '# ジョイスティック (X: GP26, Y: GP27)',
+    'joy_x = ADC(Pin(26))',
+    'joy_y = ADC(Pin(27))',
+    '',
+    '# ボタン (GP2〜GP9, GP11〜GP14 の計12個)',
+    'buttons = [Pin(i, Pin.IN) for i in range(2, 10)]',
+    'buttons.extend([Pin(i, Pin.IN) for i in range(11, 15)])',
+    '',
+    "ble = PicoNestBroadcast('gamepad')",
+    '',
+    '# ── キャリブレーション定数 ──',
+    'CAL_CX   = ' + cal.cx   + '  # 中立 X',
+    'CAL_CY   = ' + cal.cy   + '  # 中立 Y',
+    'CAL_XMIN = ' + cal.xmin + '  # X 最小',
+    'CAL_XMAX = ' + cal.xmax + '  # X 最大',
+    'CAL_YMIN = ' + cal.ymin + '  # Y 最小',
+    'CAL_YMAX = ' + cal.ymax + '  # Y 最大',
+    'CAL_DZ   = ' + cal.dz   + '   # 不感帯 (%)',
+    '',
+    '',
+    'def normalize(raw_x, raw_y):',
+    '    # X: 右方向が低ADC値 → 右が正になるよう反転',
+    '    if raw_x <= CAL_CX:',
+    '        nx = (CAL_CX - raw_x) / max(1, CAL_CX - CAL_XMIN) * 100',
+    '    else:',
+    '        nx = -(raw_x - CAL_CX) / max(1, CAL_XMAX - CAL_CX) * 100',
+    '    # Y: 上方向が高ADC値 → そのまま正方向を上に',
+    '    if raw_y >= CAL_CY:',
+    '        ny = (raw_y - CAL_CY) / max(1, CAL_YMAX - CAL_CY) * 100',
+    '    else:',
+    '        ny = -(CAL_CY - raw_y) / max(1, CAL_CY - CAL_YMIN) * 100',
+    '    nx = max(-100, min(100, round(nx)))',
+    '    ny = max(-100, min(100, round(ny)))',
+    '    if abs(nx) <= CAL_DZ:',
+    '        nx = 0',
+    '    if abs(ny) <= CAL_DZ:',
+    '        ny = 0',
+    '    return nx, ny',
+    '',
+    '',
+    'async def main():',
+    '    prev_btns = 0',
+    '    prev_x, prev_y = 0, 0',
+    '    threshold = 2',
+    '',
+    '    while True:',
+    '        x, y = normalize(joy_x.read_u16(), joy_y.read_u16())',
+    '        btns = 0',
+    '        for n, btn in enumerate(buttons):',
+    '            btns |= (btn.value() << n)',
+    "        if btns != prev_btns or abs(x - prev_x) > threshold or abs(y - prev_y) > threshold:",
+    "            ble.send_string('{},{},{}'.format(x, y, btns))",
+    '            prev_btns, prev_x, prev_y = btns, x, y',
+    "            print('Sent:', x, y, btns)",
+    '        await uasyncio.sleep(0.05)',
+    '',
+    '',
+    'uasyncio.run(ble.start(main()))'
+  ].join('\n');
+}
+
+// ════════════════════════════════════════════════
+// エラー処理
+// ════════════════════════════════════════════════
+function onError(msg) {
+  clearInterval(phaseTimer);
+  NestSerial.stopExecution().catch(function(){});
+  alert('エラー: ' + msg);
+  state = 'ready';
+  showPanel('panel-ready');
+  setStep(0);
+}
+
+// ════════════════════════════════════════════════
+// イベント
+// ════════════════════════════════════════════════
+document.getElementById('btn-connect').addEventListener('click', function() {
+  var errEl = document.getElementById('connect-error');
+  errEl.textContent = '';
+  NestSerial.connect(BAUD_RATE).then(function() {
+    state = 'ready';
+    document.getElementById('header-status').style.display = '';
+    showPanel('panel-ready');
+  }).catch(function(err) {
+    errEl.textContent = err.message;
+  });
+});
+
+document.getElementById('btn-disconnect').addEventListener('click', function() {
+  NestSerial.disconnect().then(function() {
+    state = 'idle';
+    document.getElementById('header-status').style.display = 'none';
+    showPanel('panel-idle');
+    setStep(0);
+  });
+});
+
+document.getElementById('btn-start').addEventListener('click', function() {
+  NestSerial.setOnData(onSerialData);
+  NestSerial.setOnDisconnect(function() {
+    clearInterval(phaseTimer);
+    state = 'idle';
+    document.getElementById('header-status').style.display = 'none';
+    showPanel('panel-idle');
+    setStep(0);
+  });
+  NestSerial.executeCode(TEMP_CODE).then(function() {
+    startNeutral();
+  }).catch(function(err) {
+    onError('コードの実行に失敗しました: ' + err.message);
+  });
+});
+
+document.getElementById('btn-again').addEventListener('click', function() {
+  state = 'ready';
+  cal = newCal();
+  showPanel('panel-ready');
+  setStep(0);
+});
+</script>
+</body>
+</html>
