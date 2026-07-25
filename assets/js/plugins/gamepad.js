@@ -1,6 +1,6 @@
 // ──────────────────────────────
-// プラグイン: GamePad — 受信機
-// controller.py を書き込んだコントローラー基板から BLE でデータを受信します
+// プラグイン: GamePad — 受信機 (aioble GATT)
+// controller.py を書き込んだコントローラー基板から BLE GATT で受信します
 //
 // 受信フォーマット: "joy_x,joy_y,buttons_ctrl" (カンマ区切り文字列)
 //   joy_x, joy_y : -100〜100  (左/下 が 負、右/上 が 正)
@@ -18,21 +18,21 @@ NestPlugins.register({
 
   initBlocks: function () {
 
-    // ── BLE グループ参加 ──
+    // ── デバイス名設定 ──
     Blockly.Blocks['gamepad_join'] = {
       init: function () {
         this.appendDummyInput()
-          .appendField('GamePad グループ')
-          .appendField(new Blockly.FieldTextInput('gamepad'), 'GROUP')
-          .appendField('に接続');
+          .appendField('GamePad デバイス名')
+          .appendField(new Blockly.FieldTextInput('gamepad'), 'NAME')
+          .appendField('で接続');
         this.setPreviousStatement(true, null);
         this.setNextStatement(true, null);
         this.setColour('#7C4DFF');
-        this.setTooltip('コントローラーと同じグループ名を設定してください\nデフォルト "gamepad" は controller.py と一致しています');
+        this.setTooltip('calibration.html で設定したコントローラー名を入力してください\nコントローラーと受信機が同じ名前でペアリングされます');
       }
     };
 
-    // ── コントローラーデータを受信したとき（ハットブロック）──
+    // ── コントローラーデータを受信したとき（foreverタスクとして実行）──
     Blockly.Blocks['gamepad_on_data'] = {
       init: function () {
         this.appendDummyInput()
@@ -114,46 +114,74 @@ NestPlugins.register({
 
   initGenerators: function () {
 
-    function ensureGamepadBleSetup() {
-      Blockly.Python.definitions_['import_piconest_ble'] = 'from piconest_ble import PicoNestBroadcast';
-      if (!Blockly.Python.definitions_['ble_setup']) {
-        Blockly.Python.definitions_['ble_setup'] = "ble = PicoNestBroadcast('gamepad')";
+    function ensureGamepadAiobleSetup() {
+      Blockly.Python.definitions_['import_aioble']   = 'import aioble';
+      Blockly.Python.definitions_['import_bluetooth'] = 'import bluetooth';
+      Blockly.Python.definitions_['import_sys']       = 'import sys';
+      Blockly.Python.definitions_['gamepad_uuids'] =
+        '_GP_SVC_UUID  = bluetooth.UUID(\'12345678-1234-5678-1234-56789abcdef0\')\n' +
+        '_GP_CHAR_UUID = bluetooth.UUID(\'abcdefab-cdef-1234-5678-1234567890ab\')';
+      if (!Blockly.Python.definitions_['gamepad_name']) {
+        Blockly.Python.definitions_['gamepad_name'] = "_GP_NAME = 'NB-gamepad'";
       }
     }
 
-    // BLE グループ参加
+    // デバイス名設定
     Blockly.Python['gamepad_join'] = function (block) {
-      var group = block.getFieldValue('GROUP');
-      Blockly.Python.definitions_['import_piconest_ble'] = 'from piconest_ble import PicoNestBroadcast';
-      Blockly.Python.definitions_['ble_setup'] = "ble = PicoNestBroadcast('" + group + "')";
+      var name = block.getFieldValue('NAME');
+      Blockly.Python.definitions_['import_aioble']   = 'import aioble';
+      Blockly.Python.definitions_['import_bluetooth'] = 'import bluetooth';
+      Blockly.Python.definitions_['gamepad_uuids'] =
+        '_GP_SVC_UUID  = bluetooth.UUID(\'12345678-1234-5678-1234-56789abcdef0\')\n' +
+        '_GP_CHAR_UUID = bluetooth.UUID(\'abcdefab-cdef-1234-5678-1234567890ab\')';
+      Blockly.Python.definitions_['gamepad_name'] = "_GP_NAME = 'NB-" + name + "'";
       return '';
     };
 
     // コントローラーデータを受信したとき
-    // ※ main.js の bleHandlers リストに 'gamepad_on_data' が追加されていること前提
-    // ※ MicroPython のスケジュール済みコールバックは例外がサイレントに飲み込まれるため
-    //   try/except で必ずエラーを可視化する
+    // main.js が isForever タスクとして async def task_N() でラップし gather() で並行実行する
+    // generator が返すコードは prefixLines で 2 スペース追加される（インデント基準）
     Blockly.Python['gamepad_on_data'] = function (block) {
-      ensureGamepadBleSetup();
-      Blockly.Python.definitions_['import_sys'] = 'import sys';
-      // statementToCode の前に登録する（コード生成時点では python_generators.js が確実にロード済み）
-      if (typeof registerSyncCallback === 'function') {
-        registerSyncCallback('gamepad_on_data');
-      }
+      ensureGamepadAiobleSetup();
       var body = Blockly.Python.statementToCode(block, 'DO') || '  pass\n';
-      // statementToCode は 2 スペースインデント → try ブロック内用に 2 スペース追加
-      var innerBody = body.replace(/^(?!\s*$)/mg, '  ');
-      return '@ble.on_string\n' +
-             'def _on_gamepad_data(_ble_text):\n' +
-             '  try:\n' +
-             '    _gp_vals = _ble_text.split(\',\')\n' +
-             '    _gp_x = int(_gp_vals[0])\n' +
-             '    _gp_y = int(_gp_vals[1])\n' +
-             '    _gp_btns = int(_gp_vals[2])\n' +
-             innerBody +
-             '  except Exception as _gp_e:\n' +
-             '    sys.print_exception(_gp_e)\n' +
-             '\n';
+      // statementToCode は 2 スペース → 内側 try ブロック用に 6 スペース追加（計 8 スペース）
+      // prefixLines が 2 スペース追加するので最終的に 10 スペース（正しいネスト）
+      var innerBody = body.replace(/^(?!\s*$)/mg, '      ');
+      return (
+        'while True:\n' +
+        '  try:\n' +
+        '    _gp_dev = None\n' +
+        '    async with aioble.scan(5000, interval_us=30000, window_us=30000, active=True) as _gp_sc:\n' +
+        '      async for _gp_r in _gp_sc:\n' +
+        '        if _gp_r.name() == _GP_NAME:\n' +
+        '          _gp_dev = _gp_r.device\n' +
+        '          break\n' +
+        '    if _gp_dev is None:\n' +
+        '      await uasyncio.sleep_ms(1000)\n' +
+        '      continue\n' +
+        '    _gp_conn = await _gp_dev.connect(timeout_ms=5000)\n' +
+        '    _gp_svc = await _gp_conn.service(_GP_SVC_UUID)\n' +
+        '    _gp_char = await _gp_svc.characteristic(_GP_CHAR_UUID)\n' +
+        '    await _gp_char.subscribe(notify=True)\n' +
+        '    print(\'Gamepad: connected\')\n' +
+        '    while _gp_conn.is_connected():\n' +
+        '      try:\n' +
+        '        _ble_data = await _gp_char.notified(timeout_ms=2000)\n' +
+        '        _ble_text = _ble_data.decode()\n' +
+        '        _gp_vals = _ble_text.split(\',\')\n' +
+        '        _gp_x = int(_gp_vals[0])\n' +
+        '        _gp_y = int(_gp_vals[1])\n' +
+        '        _gp_btns = int(_gp_vals[2])\n' +
+        innerBody +
+        '      except TimeoutError:\n' +
+        '        pass\n' +
+        '      except Exception as _gp_e:\n' +
+        '        sys.print_exception(_gp_e)\n' +
+        '    print(\'Gamepad: disconnected\')\n' +
+        '  except Exception as _gp_e:\n' +
+        '    sys.print_exception(_gp_e)\n' +
+        '    await uasyncio.sleep_ms(2000)\n'
+      );
     };
 
     // ジョイスティック X (-100〜100)

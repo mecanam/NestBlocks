@@ -459,10 +459,10 @@ function generateCode() {
     var code = Blockly.Python.blockToCode(block);
     if (Array.isArray(code)) code = code[0];
     if (code && code.trim()) {
-      if (block.type === 'ble_on_number' || block.type === 'ble_on_string' || block.type === 'ble_on_value' || block.type === 'ble_on_list' || block.type === 'gamepad_on_data') {
+      if (block.type === 'ble_on_number' || block.type === 'ble_on_string' || block.type === 'ble_on_value' || block.type === 'ble_on_list') {
         bleHandlers.push(code);
       } else {
-        tasks.push({ code: code, isForever: block.type === 'forever_loop' });
+        tasks.push({ code: code, isForever: block.type === 'forever_loop' || block.type === 'gamepad_on_data' });
       }
     }
   }

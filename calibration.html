@@ -264,6 +264,19 @@
 
   /* エラーテキスト */
   .cal-error { color: var(--red); font-size: 13px; margin-top: 10px; font-family: var(--f); }
+
+  /* ── コントローラー名入力 ── */
+  .cal-name-label { font-size: 13px; font-weight: 600; color: var(--text2); display: block; margin-bottom: 6px; }
+  .cal-name-input {
+    width: 100%; box-sizing: border-box;
+    padding: 8px 12px;
+    border: 1px solid var(--bdr); border-radius: var(--rs);
+    background: var(--bg); color: var(--text);
+    font-size: 14px; font-family: var(--m);
+    outline: none; transition: border-color 0.2s;
+  }
+  .cal-name-input:focus { border-color: var(--orange); }
+  .cal-name-hint { font-size: 11px; color: var(--text3); margin-top: 5px; }
 </style>
 </head>
 <body>
@@ -345,7 +358,11 @@
       <li><span class="num">2</span>ジョイスティックを<strong style="color:var(--text)">ゆっくり大きく</strong>全方向へ回す（5秒）</li>
       <li><span class="num">3</span>計測したパラメータを Pico へ自動書き込み</li>
     </ul>
-    <div class="cal-btn-row">
+    <div class="cal-divider"></div>
+    <label class="cal-name-label" for="input-name">コントローラー名</label>
+    <input type="text" id="input-name" class="cal-name-input" value="gamepad" maxlength="20" placeholder="gamepad">
+    <div class="cal-name-hint">NestBlocks の「GamePad デバイス名」ブロックと同じ名前を入力してください</div>
+    <div class="cal-btn-row" style="margin-top:18px">
       <button class="cal-btn cal-btn-primary" id="btn-start">▶ 開始</button>
       <button class="cal-btn cal-btn-outline" id="btn-disconnect">切断</button>
     </div>
@@ -493,6 +510,7 @@ function newCal() {
     xmin: 65535, xmax: 0,
     ymin: 65535, ymax: 0,
     dz: 5,
+    name: 'gamepad',
     neutralSamples: [],
     _dzRawX: 0, _dzRawY: 0
   };
@@ -650,12 +668,14 @@ function tickRotate() {
 }
 
 function finishRotate() {
-  // 不感帯 = 中立ぶれ ÷ 有効片側範囲 × 100 + 2% 余裕
+  // 不感帯 = 中立ぶれ ÷ 有効片側範囲 × 100 + 5% 余裕
+  // ロボット側で joy_y±joy_x の合算計算をするため、単軸DZの約2倍が実効DZになる
+  // 余裕を+5%にして合算後も確実に停止できるようにする
   var rangeX = Math.min(cal.cx - cal.xmin, cal.xmax - cal.cx);
   var rangeY = Math.min(cal.cy - cal.ymin, cal.ymax - cal.cy);
-  var dzX = Math.ceil(cal._dzRawX / Math.max(1, rangeX) * 100) + 2;
-  var dzY = Math.ceil(cal._dzRawY / Math.max(1, rangeY) * 100) + 2;
-  cal.dz = Math.min(20, Math.max(dzX, dzY));
+  var dzX = Math.ceil(cal._dzRawX / Math.max(1, rangeX) * 100) + 5;
+  var dzY = Math.ceil(cal._dzRawY / Math.max(1, rangeY) * 100) + 5;
+  cal.dz = Math.min(20, Math.max(8, dzX, dzY));
   startUpload();
 }
 
@@ -691,6 +711,7 @@ function showDone() {
            '<div class="cal-result-value">' + val + '</div></div>';
   }
   document.getElementById('result-grid').innerHTML =
+    ri('デバイス名',        'NB-' + (cal.name || 'gamepad'), true) +
     ri('中立 X (CAL_CX)',   cal.cx)  +
     ri('中立 Y (CAL_CY)',   cal.cy)  +
     ri('X 最小 (CAL_XMIN)', cal.xmin) +
@@ -701,16 +722,25 @@ function showDone() {
 }
 
 // ════════════════════════════════════════════════
-// calibrated controller.py 生成
+// calibrated controller.py 生成 (aioble GATT)
 // ════════════════════════════════════════════════
 function buildCode() {
+  var ctrlName = 'NB-' + (cal.name || 'gamepad');
   return [
-    '# 送信機（コントローラー）— キャリブレーション済み',
+    '# 送信機（コントローラー）— キャリブレーション済み / aioble GATT',
     '# NestBlocks calibration.html で測定したパラメータを使用しています',
     '',
-    'from piconest_ble import PicoNestBroadcast',
+    'import aioble',
+    'import bluetooth',
     'from machine import Pin, ADC',
     'import uasyncio',
+    '',
+    '# ── デバイス名（NestBlocks の「GamePad デバイス名」と一致させる）──',
+    "CONTROLLER_NAME = '" + ctrlName + "'",
+    '',
+    '# ── BLE UUID（受信機と一致）──',
+    "_SERVICE_UUID = bluetooth.UUID('12345678-1234-5678-1234-56789abcdef0')",
+    "_CHAR_UUID    = bluetooth.UUID('abcdefab-cdef-1234-5678-1234567890ab')",
     '',
     '# ジョイスティック (X: GP26, Y: GP27)',
     'joy_x = ADC(Pin(26))',
@@ -720,7 +750,7 @@ function buildCode() {
     'buttons = [Pin(i, Pin.IN) for i in range(2, 10)]',
     'buttons.extend([Pin(i, Pin.IN) for i in range(11, 15)])',
     '',
-    "ble = PicoNestBroadcast('gamepad')",
+    "led = Pin('LED', Pin.OUT)",
     '',
     '# ── キャリブレーション定数 ──',
     'CAL_CX   = ' + cal.cx   + '  # 中立 X',
@@ -730,6 +760,11 @@ function buildCode() {
     'CAL_YMIN = ' + cal.ymin + '  # Y 最小',
     'CAL_YMAX = ' + cal.ymax + '  # Y 最大',
     'CAL_DZ   = ' + cal.dz   + '   # 不感帯 (%)',
+    '',
+    '# ── GATT サービス登録 ──',
+    '_service = aioble.Service(_SERVICE_UUID)',
+    '_char    = aioble.Characteristic(_service, _CHAR_UUID, read=True, notify=True)',
+    'aioble.register_services(_service)',
     '',
     '',
     'def normalize(raw_x, raw_y):',
@@ -756,20 +791,39 @@ function buildCode() {
     '    prev_btns = 0',
     '    prev_x, prev_y = 0, 0',
     '    threshold = 2',
+    '    force_count = 0',
     '',
     '    while True:',
-    '        x, y = normalize(joy_x.read_u16(), joy_y.read_u16())',
-    '        btns = 0',
-    '        for n, btn in enumerate(buttons):',
-    '            btns |= (btn.value() << n)',
-    "        if btns != prev_btns or abs(x - prev_x) > threshold or abs(y - prev_y) > threshold:",
-    "            ble.send_string('{},{},{}'.format(x, y, btns))",
-    '            prev_btns, prev_x, prev_y = btns, x, y',
-    "            print('Sent:', x, y, btns)",
-    '        await uasyncio.sleep(0.05)',
+    '        async with await aioble.advertise(',
+    '            250_000,',
+    '            name=CONTROLLER_NAME,',
+    '            services=[_SERVICE_UUID]',
+    '        ) as connection:',
+    '            led.on()',
+    "            print('Connected:', connection.device)",
+    '            try:',
+    '                while connection.is_connected():',
+    '                    x, y = normalize(joy_x.read_u16(), joy_y.read_u16())',
+    '                    btns = 0',
+    '                    for n, btn in enumerate(buttons):',
+    '                        btns |= (btn.value() << n)',
+    '                    force_count += 1',
+    '                    changed = (btns != prev_btns or',
+    '                               abs(x - prev_x) > threshold or',
+    '                               abs(y - prev_y) > threshold)',
+    '                    if changed or force_count >= 10:',
+    "                        _char.write('{},{},{}'.format(x, y, btns).encode(), send_update=True)",
+    '                        prev_btns, prev_x, prev_y = btns, x, y',
+    '                        if changed: force_count = 0',
+    "                        print('Sent:', x, y, btns)",
+    '                    await uasyncio.sleep(0.05)',
+    '            except Exception as e:',
+    "                print('Error:', e)",
+    '            led.off()',
+    "            print('Disconnected')",
     '',
     '',
-    'uasyncio.run(ble.start(main()))'
+    'uasyncio.run(main())'
   ].join('\n');
 }
 
@@ -810,6 +864,8 @@ document.getElementById('btn-disconnect').addEventListener('click', function() {
 });
 
 document.getElementById('btn-start').addEventListener('click', function() {
+  cal.name = (document.getElementById('input-name').value.trim() || 'gamepad')
+    .replace(/['"\\]/g, '');
   NestSerial.setOnData(onSerialData);
   NestSerial.setOnDisconnect(function() {
     clearInterval(phaseTimer);
