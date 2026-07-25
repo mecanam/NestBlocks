@@ -114,6 +114,12 @@ NestPlugins.register({
 
   initGenerators: function () {
 
+    // gamepad_on_data は同期コールバック（def）のため、
+    // 内部でasync関数を呼ぶとき await ではなく uasyncio.create_task() を使うよう登録
+    if (typeof registerSyncCallback === 'function') {
+      registerSyncCallback('gamepad_on_data');
+    }
+
     function ensureGamepadBleSetup() {
       Blockly.Python.definitions_['import_piconest_ble'] = 'from piconest_ble import PicoNestBroadcast';
       if (!Blockly.Python.definitions_['ble_setup']) {
