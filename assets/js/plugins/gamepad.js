@@ -121,6 +121,8 @@ NestPlugins.register({
       Blockly.Python.definitions_['gamepad_uuids'] =
         '_GP_SVC_UUID  = bluetooth.UUID(\'12345678-1234-5678-1234-56789abcdef0\')\n' +
         '_GP_CHAR_UUID = bluetooth.UUID(\'abcdefab-cdef-1234-5678-1234567890ab\')';
+      // モジュールレベルで初期化 — forever_loop など別タスクからも参照可能にする
+      Blockly.Python.definitions_['gamepad_vars'] = '_gp_x = 0\n_gp_y = 0\n_gp_btns = 0';
       if (!Blockly.Python.definitions_['gamepad_name']) {
         Blockly.Python.definitions_['gamepad_name'] = "_GP_NAME = 'NB-gamepad'";
       }
@@ -148,6 +150,7 @@ NestPlugins.register({
       // prefixLines が 2 スペース追加するので最終的に 10 スペース（正しいネスト）
       var innerBody = body.replace(/^(?!\s*$)/mg, '      ');
       return (
+        'global _gp_x, _gp_y, _gp_btns\n' +
         'while True:\n' +
         '  try:\n' +
         '    _gp_dev = None\n' +
