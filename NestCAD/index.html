@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="ja" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NestCAD — ブラウザ 3D CAD</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@700;800;900&family=Quicksand:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+      "three-mesh-bvh": "https://cdn.jsdelivr.net/npm/three-mesh-bvh@0.7.4/build/index.module.js",
+      "three-bvh-csg": "https://cdn.jsdelivr.net/npm/three-bvh-csg@0.0.16/build/index.module.js"
+    }
+  }
+  </script>
+
+<style>
+/* ── CSS 変数（NestBlocks 互換）──────────────────── */
+:root {
+  --bg:    #F5F3EF; --bg-s: #ffffff; --bg-h: #EDEAE4; --bg-a: #E0DDD7;
+  --text:  #0a0a0a; --text2: #5a5a5a; --text3: #9a9a9a;
+  --bdr:   #e2dfd9;
+  --r: 12px; --rs: 6px;
+  --f:  'Quicksand', system-ui, sans-serif;
+  --fl: 'Outfit', 'Quicksand', sans-serif;
+  --m:  'JetBrains Mono', monospace;
+  --orange: #E04B16; --orange2: #F06830;
+  --blue: #4A8FE7; --green: #34C759; --red: #E05252; --purple: #8B6FE8;
+}
+[data-theme="dark"] {
+  --bg: #0d1117; --bg-s: #161b22; --bg-h: #1c2129; --bg-a: #2d333b;
+  --text: #f0f6fc; --text2: #8b949e; --text3: #545d68; --bdr: #21262d;
+  --orange: #FF6B35; --orange2: #FF8552;
+  --green: #3FB950; --blue: #58A6FF; --red: #F85149; --purple: #BC8CFF;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+body {
+  display: flex; flex-direction: column;
+  background: var(--bg); color: var(--text);
+  font-family: var(--f); font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+}
+button { font-family: var(--f); cursor: pointer; border: none; background: none; }
+input[type="number"], input[type="text"], select {
+  font-family: var(--m); background: var(--bg); color: var(--text);
+  border: 1px solid var(--bdr); border-radius: var(--rs);
+  padding: 5px 8px; font-size: 13px; width: 100%;
+  outline: none; transition: border-color .15s;
+}
+input[type="number"]:focus, input[type="text"]:focus, select:focus { border-color: var(--orange); }
+select { cursor: pointer; }
+
+/* ── ヘッダー ─────────────────────────────────────── */
+.nc-header {
+  flex-shrink: 0; height: 48px;
+  display: flex; align-items: center; gap: 8px;
+  padding: 0 12px;
+  background: var(--bg-s); border-bottom: 1px solid var(--bdr); z-index: 10;
+}
+.nc-logo {
+  display: flex; align-items: center; gap: 7px;
+  font-family: var(--fl); font-size: 17px; font-weight: 900;
+  color: var(--text); letter-spacing: -.04em; text-decoration: none;
+}
+.nc-logo svg { width: 26px; height: 26px; }
+.nc-logo span { color: var(--orange); }
+.nc-version {
+  font-size: 10px; font-weight: 700; color: var(--text3);
+  background: var(--bg-h); border-radius: 4px; padding: 2px 5px; font-family: var(--m);
+}
+.nc-header-sep { width: 1px; height: 20px; background: var(--bdr); margin: 0 2px; }
+.spacer { flex: 1; }
+.back-link {
+  display: flex; align-items: center; gap: 5px;
+  color: var(--text2); text-decoration: none;
+  font-size: 12px; font-weight: 600;
+  padding: 5px 9px; border-radius: var(--rs); border: 1px solid var(--bdr);
+  transition: background .12s, color .12s; white-space: nowrap;
+}
+.back-link:hover { background: var(--bg-h); color: var(--text); }
+.icon-btn {
+  width: 32px; height: 32px; border-radius: var(--rs);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text2); transition: background .12s, color .12s;
+}
+.icon-btn:hover { background: var(--bg-h); color: var(--text); }
+.icon-btn svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ── モードトグル ─────────────────────────────────── */
+.mode-toggle {
+  display: flex; align-items: center;
+  background: var(--bg-h); border-radius: 8px; padding: 3px; gap: 2px;
+}
+.mode-btn {
+  display: flex; align-items: center; gap: 5px;
+  padding: 5px 12px; border-radius: 6px;
+  font-size: 12px; font-weight: 700; color: var(--text3);
+  transition: background .15s, color .15s, box-shadow .15s;
+  white-space: nowrap;
+}
+.mode-btn svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.mode-btn.active {
+  background: var(--bg-s); color: var(--text);
+  box-shadow: 0 1px 4px rgba(0,0,0,.12);
+}
+[data-theme="dark"] .mode-btn.active { box-shadow: 0 1px 4px rgba(0,0,0,.4); }
+
+/* ── ワークスペース ───────────────────────────────── */
+.nc-workspace { flex: 1; display: flex; overflow: hidden; min-height: 0; }
+
+/* ── 左パネル ─────────────────────────────────────── */
+.nc-tools {
+  width: 196px; flex-shrink: 0;
+  background: var(--bg-s); border-right: 1px solid var(--bdr);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.tools-scroll {
+  flex-shrink: 0; overflow-y: auto; padding: 8px;
+}
+.tool-section-title {
+  font-size: 10px; font-weight: 700; color: var(--text3);
+  text-transform: uppercase; letter-spacing: .08em;
+  padding: 8px 4px 5px;
+}
+.nc-tool {
+  display: flex; align-items: center; gap: 8px;
+  width: 100%; padding: 7px 8px;
+  border-radius: var(--rs); color: var(--text2);
+  font-size: 12px; font-weight: 600;
+  transition: background .1s, color .1s; text-align: left;
+}
+.nc-tool:hover { background: var(--bg-h); color: var(--text); }
+.nc-tool.active { background: rgba(224,75,22,.12); color: var(--orange); }
+.nc-tool.disabled { opacity: .35; cursor: not-allowed; }
+.nc-tool svg { width: 15px; height: 15px; flex-shrink: 0; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.nc-tool-badge {
+  margin-left: auto; font-size: 9px; font-weight: 700;
+  background: var(--bg-a); color: var(--text3); border-radius: 3px; padding: 1px 4px;
+}
+.nc-tool-divider { height: 1px; background: var(--bdr); margin: 4px 0; }
+.tool-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+/* スケッチモードのヒント */
+.sketch-hint {
+  margin: 4px 4px 8px;
+  padding: 8px 10px;
+  background: var(--bg-h); border-radius: var(--rs);
+  font-size: 11px; color: var(--text3); line-height: 1.5;
+}
+/* スケッチ平面・ツール */
+.sketch-plane-btns { display:flex; gap:3px; padding:2px 4px 6px; }
+.sketch-plane-btn {
+  flex:1; padding:6px 2px;
+  border-radius:var(--rs); font-size:11px; font-weight:700;
+  color:var(--text3); background:var(--bg-h); text-align:center;
+  border:1.5px solid transparent;
+  transition:background .1s, color .1s, border-color .1s;
+}
+.sketch-plane-btn:hover { background:var(--bg-a); color:var(--text); }
+.sketch-plane-btn.active { background:rgba(74,143,231,.12); color:#4A8FE7; border-color:rgba(74,143,231,.35); }
+.sketch-plane-label {
+  font-size:10px; font-weight:700; color:var(--text3);
+  padding:6px 4px 4px; letter-spacing:.07em;
+}
+.sketch-extrude-row {
+  display:flex; align-items:center; gap:5px;
+  padding:4px 4px 2px; font-size:12px; color:var(--text2);
+}
+.sketch-extrude-row input {
+  flex:1; min-width:0; padding:4px 6px;
+  border:1px solid var(--bdr); border-radius:var(--rs);
+  background:var(--bg-a); color:var(--text); font-size:12px;
+}
+
+/* 変換モードボタン */
+.transform-btns {
+  display: flex; gap: 3px; padding: 2px 4px 6px;
+}
+.transform-btn {
+  flex: 1; padding: 6px 4px;
+  border-radius: var(--rs);
+  font-size: 11px; font-weight: 700; color: var(--text3);
+  background: var(--bg-h); text-align: center;
+  border: 1.5px solid transparent;
+  transition: background .1s, color .1s, border-color .1s;
+}
+.transform-btn:hover { background: var(--bg-a); color: var(--text); }
+.transform-btn.active {
+  background: rgba(224,75,22,.1); color: var(--orange);
+  border-color: rgba(224,75,22,.3);
+}
+.transform-btn .kb {
+  display: block; font-size: 9px; font-family: var(--m);
+  opacity: .55; margin-top: 2px; font-weight: 500;
+}
+
+/* ── シーンツリー ─────────────────────────────────── */
+.scene-tree {
+  flex: 1; display: flex; flex-direction: column;
+  overflow: hidden; border-top: 1px solid var(--bdr); min-height: 0;
+}
+.scene-tree-hdr {
+  flex-shrink: 0; padding: 8px 12px 6px;
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 10px; font-weight: 700; color: var(--text3);
+  text-transform: uppercase; letter-spacing: .07em;
+}
+.tree-count-badge {
+  font-size: 9px; font-weight: 700;
+  background: var(--bg-a); color: var(--text3);
+  border-radius: 3px; padding: 1px 5px; font-family: var(--m);
+}
+.scene-tree-list {
+  flex: 1; overflow-y: auto; padding: 4px;
+}
+.tree-empty {
+  padding: 20px 10px; text-align: center;
+  font-size: 11px; color: var(--text3); line-height: 1.6;
+}
+.tree-item {
+  display: flex; align-items: center; gap: 7px;
+  padding: 6px 8px; border-radius: var(--rs);
+  cursor: pointer; font-size: 12px; font-weight: 600;
+  color: var(--text2); transition: background .1s;
+  user-select: none;
+}
+.tree-item:hover { background: var(--bg-h); }
+.tree-item.selected  { background: rgba(224,75,22,.1); color: var(--orange); }
+.tree-item.selected2 { background: rgba(74,143,231,.1); color: var(--blue); }
+.tree-item.hidden-obj { opacity: .45; }
+.boolean-hint {
+  font-size: 10px; color: var(--text3); padding: 1px 4px 6px;
+  line-height: 1.5;
+}
+/* 役割トグル */
+.role-toggle { display: flex; gap: 4px; }
+.role-btn {
+  flex: 1; padding: 6px 6px;
+  border-radius: var(--rs);
+  font-size: 11px; font-weight: 700; color: var(--text3);
+  background: var(--bg-h); text-align: center;
+  border: 1.5px solid transparent;
+  transition: background .1s, color .1s, border-color .1s;
+}
+.role-btn:hover { background: var(--bg-a); color: var(--text); }
+.role-btn[data-role="body"].active {
+  background: rgba(224,75,22,.1); color: var(--orange);
+  border-color: rgba(224,75,22,.3);
+}
+.role-btn[data-role="cutter"].active {
+  background: rgba(74,143,231,.1); color: var(--blue);
+  border-color: rgba(74,143,231,.3);
+}
+.tree-item-icon { width: 14px; height: 14px; flex-shrink: 0; }
+.tree-item-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tree-vis-btn {
+  width: 22px; height: 22px; display: flex; align-items: center; justify-content: center;
+  border-radius: 4px; opacity: 0; transition: opacity .1s, background .1s; flex-shrink: 0;
+}
+.tree-item:hover .tree-vis-btn { opacity: .5; }
+.tree-item:hover .tree-vis-btn:hover { opacity: 1; background: var(--bg-a); }
+.tree-vis-btn svg { width: 11px; height: 11px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+/* ── 3D ビューポート ──────────────────────────────── */
+.nc-viewport-wrap { flex: 1; position: relative; overflow: hidden; }
+[data-theme="light"] .nc-viewport-wrap { background: #f0eeea; }
+[data-theme="dark"]  .nc-viewport-wrap { background: #0d1117; }
+#nc-canvas { width: 100%; height: 100%; display: block; }
+
+.nc-obj-count {
+  position: absolute; top: 10px; left: 12px;
+  font-size: 11px; font-weight: 700; color: var(--text3);
+  background: var(--bg-s); border: 1px solid var(--bdr);
+  border-radius: var(--rs); padding: 3px 8px; pointer-events: none; opacity: .85;
+}
+.nc-view-hint {
+  position: absolute; top: 10px; right: 12px;
+  font-size: 11px; color: var(--text3);
+  background: var(--bg-s); border: 1px solid var(--bdr);
+  border-radius: var(--rs); padding: 4px 10px;
+  line-height: 1.65; pointer-events: none; opacity: .85;
+}
+.nc-coord-display {
+  position: absolute; bottom: 10px; left: 12px;
+  font-family: var(--m); font-size: 11px; color: var(--text3);
+  background: var(--bg-s); border: 1px solid var(--bdr);
+  border-radius: var(--rs); padding: 3px 8px; pointer-events: none; opacity: .85;
+}
+
+/* ── プロパティパネル ─────────────────────────────── */
+.nc-props {
+  width: 228px; flex-shrink: 0;
+  background: var(--bg-s); border-left: 1px solid var(--bdr);
+  display: flex; flex-direction: column; overflow-y: auto;
+}
+.nc-props-header {
+  padding: 11px 14px 8px;
+  border-bottom: 1px solid var(--bdr);
+  font-size: 10px; font-weight: 700; color: var(--text3);
+  text-transform: uppercase; letter-spacing: .07em;
+}
+.nc-props-empty {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 8px; padding: 20px; color: var(--text3); text-align: center;
+}
+.nc-props-empty svg { width: 34px; height: 34px; opacity: .3; stroke: var(--text3); fill: none; stroke-width: 1.5; }
+.nc-props-empty-text { font-size: 11px; line-height: 1.6; }
+.nc-props-object { display: none; flex-direction: column; }
+.props-name-row {
+  display: flex; align-items: center; gap: 8px; padding: 11px 14px 8px;
+}
+.props-name { font-size: 13px; font-weight: 700; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.props-type-badge {
+  font-size: 10px; font-weight: 700; color: var(--text2);
+  background: var(--bg-h); border-radius: 4px; padding: 2px 6px; font-family: var(--m);
+}
+.props-section { border-top: 1px solid var(--bdr); padding: 9px 14px; }
+.props-section-title {
+  font-size: 10px; font-weight: 700; color: var(--text3);
+  text-transform: uppercase; letter-spacing: .07em; margin-bottom: 7px;
+}
+.props-row { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; }
+.props-row:last-child { margin-bottom: 0; }
+.props-label { font-size: 11px; font-weight: 700; color: var(--text3); width: 14px; flex-shrink: 0; font-family: var(--m); }
+.props-size-text {
+  font-family: var(--m); font-size: 11px; color: var(--text2);
+  background: var(--bg); border: 1px solid var(--bdr);
+  border-radius: var(--rs); padding: 5px 8px; width: 100%;
+}
+.props-actions { padding: 9px 14px; border-top: 1px solid var(--bdr); }
+.delete-btn {
+  width: 100%; padding: 7px; border-radius: var(--rs);
+  background: rgba(224,82,82,.1); color: var(--red);
+  font-size: 12px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  border: 1px solid rgba(224,82,82,.2); transition: background .1s;
+}
+.delete-btn:hover { background: rgba(224,82,82,.2); }
+.delete-btn svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; }
+
+/* ── ボトムバー ───────────────────────────────────── */
+.nc-bottombar {
+  flex-shrink: 0; height: 38px;
+  display: flex; align-items: center; gap: 8px; padding: 0 12px;
+  background: var(--bg-s); border-top: 1px solid var(--bdr);
+}
+.export-btn {
+  display: flex; align-items: center; gap: 5px;
+  padding: 5px 12px; border-radius: var(--rs);
+  font-size: 12px; font-weight: 700; transition: background .1s, transform .1s;
+}
+.export-btn:active { transform: scale(.97); }
+.export-btn svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.btn-stl { background: var(--orange); color: #fff; }
+.btn-stl:hover { background: var(--orange2); }
+.btn-step { background: var(--bg-h); color: var(--text3); border: 1px solid var(--bdr); cursor: not-allowed; }
+.nc-bottombar-sep { width: 1px; height: 18px; background: var(--bdr); }
+.nc-status-text { font-size: 11px; color: var(--text3); font-family: var(--m); }
+
+/* ── シェイプ追加モーダル ────────────────────────── */
+.nc-modal {
+  display: none; position: fixed; inset: 0; z-index: 100;
+  background: rgba(0,0,0,.4); align-items: center; justify-content: center;
+}
+.nc-modal.open { display: flex; }
+.modal-card {
+  background: var(--bg-s); border: 1px solid var(--bdr); border-radius: var(--r);
+  width: 300px; overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0,0,0,.25);
+  animation: modalIn .18s cubic-bezier(.34,1.2,.64,1);
+}
+@keyframes modalIn { from { opacity:0; transform: scale(.94) translateY(8px); } }
+.modal-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 16px 12px; border-bottom: 1px solid var(--bdr);
+}
+.modal-icon {
+  width: 30px; height: 30px; border-radius: 7px;
+  background: rgba(224,75,22,.12);
+  display: flex; align-items: center; justify-content: center;
+}
+.modal-icon svg { width: 15px; height: 15px; stroke: var(--orange); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.modal-title { font-size: 14px; font-weight: 800; font-family: var(--fl); }
+.modal-body { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.modal-field label {
+  display: block; font-size: 10px; font-weight: 700; color: var(--text2);
+  margin-bottom: 4px; text-transform: uppercase; letter-spacing: .05em;
+}
+.modal-footer { display: flex; gap: 7px; padding: 10px 16px 14px; }
+.modal-btn { flex: 1; padding: 8px; border-radius: var(--rs); font-size: 12px; font-weight: 700; transition: background .1s; }
+.modal-btn-primary { background: var(--orange); color: #fff; }
+.modal-btn-primary:hover { background: var(--orange2); }
+.modal-btn-cancel { background: var(--bg-h); color: var(--text2); border: 1px solid var(--bdr); }
+.modal-btn-cancel:hover { background: var(--bg-a); }
+</style>
+</head>
+<body>
+
+<!-- ヘッダー -->
+<header class="nc-header">
+
+  <a href="#" class="nc-logo">
+    <svg viewBox="0 0 54 54" fill="none">
+      <polygon points="7,16 27,27 27,49 7,38" fill="currentColor" opacity="0.35"/>
+      <polygon points="27,5 47,16 27,27 7,16" fill="currentColor" opacity="0.18"/>
+      <polygon points="47,16 47,38 27,49 27,27" fill="var(--orange)"/>
+      <polyline points="27,5 47,16 47,38 27,49 7,38 7,16 27,5" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linejoin="round"/>
+      <line x1="27" y1="5" x2="27" y2="27" stroke="currentColor" stroke-width="1.8"/>
+      <line x1="7" y1="16" x2="27" y2="27" stroke="currentColor" stroke-width="1.8"/>
+      <line x1="47" y1="16" x2="27" y2="27" stroke="currentColor" stroke-width="1.8"/>
+    </svg>
+    Nest<span>CAD</span>
+  </a>
+  <span class="nc-version">v0.2.0</span>
+
+  <div class="nc-header-sep"></div>
+
+  <!-- モードトグル -->
+  <div class="mode-toggle">
+    <button class="mode-btn active" data-mode="primitive">
+      <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+      プリミティブ
+    </button>
+    <button class="mode-btn" data-mode="sketch">
+      <svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+      スケッチ
+    </button>
+  </div>
+
+  <div class="spacer"></div>
+
+  <button class="icon-btn" id="btn-reset-view" title="視点リセット (Home)">
+    <svg viewBox="0 0 24 24"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 .49-4"/></svg>
+  </button>
+  <button class="icon-btn" id="theme-btn" title="テーマ切替">
+    <svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+  </button>
+</header>
+
+<!-- ワークスペース -->
+<div class="nc-workspace">
+
+  <!-- 左パネル -->
+  <aside class="nc-tools">
+    <div class="tools-scroll">
+
+      <!-- ■ プリミティブパネル -->
+      <div id="panel-primitive">
+        <div class="tool-section-title">シェイプ追加</div>
+        <button class="nc-tool" data-shape="box">
+          <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+          ボックス
+          <span class="tool-dot" style="background:#4A8FE7"></span>
+        </button>
+        <button class="nc-tool" data-shape="cylinder">
+          <svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+          円柱
+          <span class="tool-dot" style="background:#34C759"></span>
+        </button>
+        <button class="nc-tool" data-shape="sphere">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><line x1="2" y1="12" x2="22" y2="12"/></svg>
+          球体
+          <span class="tool-dot" style="background:#E04B16"></span>
+        </button>
+        <button class="nc-tool" data-shape="torus">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg>
+          トーラス
+          <span class="tool-dot" style="background:#8B6FE8"></span>
+        </button>
+        <button class="nc-tool" data-shape="capsule">
+          <svg viewBox="0 0 24 24"><rect x="8" y="4" width="8" height="16" rx="4"/></svg>
+          カプセル
+          <span class="tool-dot" style="background:#FF9500"></span>
+        </button>
+        <button class="nc-tool" data-shape="polyhedron">
+          <svg viewBox="0 0 24 24"><polygon points="12,2 21,7 21,17 12,22 3,17 3,7"/></svg>
+          多面体
+          <span class="tool-dot" style="background:#20C9A0"></span>
+        </button>
+        <button class="nc-tool" data-shape="text3d">
+          <svg viewBox="0 0 24 24"><line x1="4" y1="7" x2="20" y2="7"/><line x1="12" y1="7" x2="12" y2="19"/></svg>
+          テキスト
+          <span class="tool-dot" style="background:#E05252"></span>
+        </button>
+        <button class="nc-tool" data-shape="gear">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          平歯車
+          <span class="tool-dot" style="background:#D4A644"></span>
+        </button>
+        <button class="nc-tool" data-shape="bevel_gear">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          ベベルギア
+          <span class="tool-dot" style="background:#C8922A"></span>
+        </button>
+      </div>
+
+      <!-- ■ スケッチパネル -->
+      <div id="panel-sketch" style="display:none">
+        <div class="tool-section-title">スケッチ</div>
+
+        <div id="sketch-entry">
+          <div class="sketch-hint">平面を選択してスケッチを開始</div>
+          <div class="sketch-plane-btns">
+            <button class="sketch-plane-btn" data-sketch-plane="xy">XY<br><small>上面</small></button>
+            <button class="sketch-plane-btn" data-sketch-plane="xz">XZ<br><small>正面</small></button>
+            <button class="sketch-plane-btn" data-sketch-plane="yz">YZ<br><small>側面</small></button>
+          </div>
+        </div>
+
+        <div id="sketch-tools" style="display:none">
+          <div class="sketch-plane-label" id="sketch-plane-label">XY (上面)</div>
+          <button class="nc-tool active" data-sketch-tool="line">
+            <svg viewBox="0 0 24 24"><line x1="5" y1="19" x2="19" y2="5"/><circle cx="5" cy="19" r="2" fill="currentColor"/><circle cx="19" cy="5" r="2" fill="currentColor"/></svg>
+            線分
+          </button>
+          <button class="nc-tool" data-sketch-tool="rect">
+            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+            矩形
+          </button>
+          <button class="nc-tool" data-sketch-tool="circle">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/></svg>
+            円
+          </button>
+          <div class="nc-tool-divider"></div>
+          <div class="sketch-extrude-row">
+            <span>深さ</span>
+            <input type="number" id="sketch-depth" value="10" min="0.1" step="1">
+            <span>mm</span>
+          </div>
+          <button class="nc-tool" id="sketch-extrude-btn" disabled>
+            <svg viewBox="0 0 24 24"><polyline points="12 19 12 5"/><polyline points="5 12 12 5 19 12"/></svg>
+            押し出し
+          </button>
+          <button class="nc-tool" id="sketch-exit-btn">
+            <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            スケッチ終了
+          </button>
+        </div>
+      </div>
+
+      <!-- 変換モード（共通）-->
+      <div class="nc-tool-divider"></div>
+      <div class="tool-section-title">変換モード</div>
+      <div class="transform-btns">
+        <button class="transform-btn active" data-transform="translate">
+          移動 <span class="kb">W</span>
+        </button>
+        <button class="transform-btn" data-transform="rotate">
+          回転 <span class="kb">E</span>
+        </button>
+        <button class="transform-btn" data-transform="scale">
+          拡縮 <span class="kb">R</span>
+        </button>
+      </div>
+
+      <!-- ブーリアン演算 -->
+      <div class="nc-tool-divider"></div>
+      <div class="tool-section-title">ブーリアン演算</div>
+      <div class="boolean-hint">Ctrl+クリックで2つ選択してから実行<br>ソリッド+カッター → 自動で切り取り</div>
+      <button class="nc-tool disabled" data-boolean="union" disabled>
+        <svg viewBox="0 0 24 24"><circle cx="9" cy="12" r="6"/><circle cx="15" cy="12" r="6"/></svg>
+        結合 · 切り取り
+      </button>
+      <button class="nc-tool disabled" data-boolean="intersect" disabled>
+        <svg viewBox="0 0 24 24"><path d="M14 6a6 6 0 0 1 0 12"/><path d="M10 6a6 6 0 0 0 0 12"/></svg>
+        交差切り取り
+      </button>
+
+    </div><!-- /tools-scroll -->
+
+    <!-- シーンツリー（残りのスペースを使用）-->
+    <div class="scene-tree">
+      <div class="scene-tree-hdr">
+        シーンツリー
+        <span class="tree-count-badge" id="tree-count">0</span>
+      </div>
+      <div class="scene-tree-list" id="scene-tree-list">
+        <div class="tree-empty">オブジェクトを追加すると<br>ここに表示されます</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- 3D ビューポート -->
+  <div class="nc-viewport-wrap">
+    <canvas id="nc-canvas"></canvas>
+    <div class="nc-obj-count" id="obj-count">0 オブジェクト</div>
+    <div class="nc-view-hint">
+      左ドラッグ: 回転　右ドラッグ: 移動<br>
+      スクロール: ズーム　Delete: 削除<br>
+      <span style="opacity:.65;font-size:10px">座標系: X右 / Y奥 / Z上</span>
+    </div>
+    <div class="nc-coord-display" id="coord-display">X:— Y:— Z:—</div>
+  </div>
+
+  <!-- プロパティパネル -->
+  <aside class="nc-props">
+    <div class="nc-props-header">プロパティ</div>
+
+    <div class="nc-props-empty" id="props-empty">
+      <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+      <div class="nc-props-empty-text">オブジェクトを選択すると<br>プロパティが表示されます</div>
+    </div>
+
+    <div class="nc-props-object" id="props-object">
+      <div class="props-name-row">
+        <div class="props-name" id="props-name">ボックス</div>
+        <div class="props-type-badge" id="props-type">box</div>
+      </div>
+
+      <!-- 役割（boolean 結果以外に表示）-->
+      <div class="props-section" id="props-section-role">
+        <div class="props-section-title">役割</div>
+        <div class="role-toggle">
+          <button class="role-btn active" data-role="body">ソリッド</button>
+          <button class="role-btn" data-role="cutter">カッター</button>
+        </div>
+      </div>
+
+      <!-- テキスト編集（text3d のみ）-->
+      <div class="props-section" id="props-section-text" style="display:none">
+        <div class="props-section-title">テキスト</div>
+        <input type="text" id="prop-text" value="" placeholder="テキストを入力（英数字）"
+          style="margin-top:2px">
+      </div>
+
+      <!-- 位置 (移動モード) -->
+      <div class="props-section" id="props-section-translate">
+        <div class="props-section-title">位置 (mm) &nbsp;<span style="font-weight:400;opacity:.55;text-transform:none;letter-spacing:0">Z = 高さ</span></div>
+        <div class="props-row">
+          <span class="props-label" style="color:#E05252">X</span>
+          <input type="number" id="prop-x" step="0.1" value="0">
+        </div>
+        <div class="props-row">
+          <span class="props-label" style="color:#34C759">Y</span>
+          <input type="number" id="prop-y" step="0.1" value="0">
+        </div>
+        <div class="props-row">
+          <span class="props-label" style="color:#4A8FE7">Z</span>
+          <input type="number" id="prop-z" step="0.1" value="0">
+        </div>
+      </div>
+
+      <!-- 回転 (回転モード) -->
+      <div class="props-section" id="props-section-rotate" style="display:none">
+        <div class="props-section-title">回転 (°)</div>
+        <div class="props-row">
+          <span class="props-label" style="color:#E05252">X</span>
+          <input type="number" id="prop-rx" step="1" value="0">
+        </div>
+        <div class="props-row">
+          <span class="props-label" style="color:#34C759">Y</span>
+          <input type="number" id="prop-ry" step="1" value="0">
+        </div>
+        <div class="props-row">
+          <span class="props-label" style="color:#4A8FE7">Z</span>
+          <input type="number" id="prop-rz" step="1" value="0">
+        </div>
+      </div>
+
+      <!-- 拡縮 (拡縮モード) -->
+      <div class="props-section" id="props-section-scale" style="display:none">
+        <div class="props-section-title">拡縮 &nbsp;<span style="font-weight:400;opacity:.55;text-transform:none;letter-spacing:0">1.0 = 等倍</span></div>
+        <div class="props-row">
+          <span class="props-label" style="color:#E05252">X</span>
+          <input type="number" id="prop-sx" step="0.01" value="1" min="0.01">
+        </div>
+        <div class="props-row">
+          <span class="props-label" style="color:#34C759">Y</span>
+          <input type="number" id="prop-sy" step="0.01" value="1" min="0.01">
+        </div>
+        <div class="props-row">
+          <span class="props-label" style="color:#4A8FE7">Z</span>
+          <input type="number" id="prop-sz" step="0.01" value="1" min="0.01">
+        </div>
+      </div>
+
+      <div class="props-section">
+        <div class="props-section-title">サイズ</div>
+        <div class="props-size-text" id="size-row">—</div>
+      </div>
+
+      <div class="props-section">
+        <div class="props-section-title">表示色</div>
+        <input type="color" id="prop-color" value="#4A8FE7"
+          style="width:100%;height:30px;border:1px solid var(--bdr);border-radius:var(--rs);background:none;cursor:pointer;padding:2px;">
+      </div>
+
+      <div class="props-actions">
+        <button class="delete-btn" id="delete-btn">
+          <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+          削除 (Del)
+        </button>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<!-- ボトムバー -->
+<div class="nc-bottombar">
+  <button class="export-btn btn-stl" id="btn-export-stl">
+    <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    STL 書き出し
+  </button>
+  <button class="export-btn btn-step" disabled title="Phase 3 で実装予定">
+    STEP（準備中）
+  </button>
+  <div class="nc-bottombar-sep"></div>
+  <span class="nc-status-text" id="status-text">左のパネルからシェイプを追加するか、スケッチモードに切り替えてください</span>
+</div>
+
+<!-- シェイプ追加モーダル -->
+<div class="nc-modal" id="nc-modal">
+  <div class="modal-card">
+    <div class="modal-header">
+      <div class="modal-icon">
+        <svg viewBox="0 0 24 24" id="modal-icon-svg"></svg>
+      </div>
+      <div class="modal-title" id="modal-title">シェイプを追加</div>
+    </div>
+    <div class="modal-body" id="modal-inputs"></div>
+    <div class="modal-footer">
+      <button class="modal-btn modal-btn-cancel" id="modal-cancel">キャンセル</button>
+      <button class="modal-btn modal-btn-primary" id="modal-confirm">追加</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="assets/js/app.js"></script>
+</body>
+</html>

@@ -210,10 +210,12 @@ NestPlugins.register({
       return [codeMap[dir], Blockly.Python.ORDER_ATOMIC];
     };
 
-    // ボタン N が押されている（ビット N-1 を検査）
+    // ボタン N が押されている（ビット N-1 を検査。ただし7と9は入れ替え）
     Blockly.Python['gamepad_btn'] = function (block) {
       var btn = parseInt(block.getFieldValue('BTN'), 10);
-      return ['((_gp_btns >> ' + (btn - 1) + ') & 1)', Blockly.Python.ORDER_ATOMIC];
+      var bitMap = { 7: 8, 9: 6 };
+      var bit = (bitMap[btn] !== undefined) ? bitMap[btn] : (btn - 1);
+      return ['((_gp_btns >> ' + bit + ') & 1)', Blockly.Python.ORDER_ATOMIC];
     };
 
     // いずれかのボタンが押されている
